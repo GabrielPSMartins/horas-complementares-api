@@ -1,12 +1,13 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI
+
+from app.api import api_router
+from config.settings import settings
+
 
 app = FastAPI(
-    title="Horas Complementares API",
-    version="0.1.0",
+    title=settings.app_name,
+    version=settings.app_version,
+    description="API para gerenciamento de horas complementares de alunos.",
 )
 
-
-@app.get("/health", status_code=status.HTTP_200_OK)
-def health_check() -> dict[str, str]:
-    """Informa se a aplicação está disponível."""
-    return {"status": "ok"}
+app.include_router(api_router)
