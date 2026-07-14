@@ -3,14 +3,18 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models.activity_type import ActivityType
 from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
+from config.settings import settings
 
 
-TEMP_PASSWORD_HASH = "temporary_hash_until_auth_is_implemented"
+def build_initial_student_password(cpf: str) -> str:
+    normalized_cpf = "".join(char for char in cpf if char.isdigit())
+    return f"FEPI*{normalized_cpf}"
 
 
 def get_or_create_user(
@@ -18,6 +22,7 @@ def get_or_create_user(
     *,
     email: str,
     username: str,
+    password: str,
     role: UserRole,
     must_change_password: bool = True,
 ) -> User:
@@ -31,7 +36,7 @@ def get_or_create_user(
     user = User(
         email=email,
         username=username,
-        password_hash=TEMP_PASSWORD_HASH,
+        password_hash=hash_password(password),
         role=role,
         is_active=True,
         must_change_password=must_change_password,
@@ -141,6 +146,17 @@ def get_or_create_activity_type(
 
 
 def seed_development_data() -> None:
+    if settings.environment != "development":
+        raise RuntimeError("O seed de desenvolvimento só pode ser executado em development.")
+
+    if not settings.default_root_password:
+        raise RuntimeError("DEFAULT_ROOT_PASSWORD precisa ser configurada no .env.")
+
+    if not settings.default_coordinator_password:
+        raise RuntimeError(
+            "DEFAULT_COORDINATOR_PASSWORD precisa ser configurada no .env."
+        )
+
     db = SessionLocal()
 
     try:
@@ -148,6 +164,7 @@ def seed_development_data() -> None:
             db,
             email="root@fepi.edu.br",
             username="root",
+            password=settings.default_root_password,
             role=UserRole.ROOT,
             must_change_password=True,
         )
@@ -156,6 +173,7 @@ def seed_development_data() -> None:
             db,
             email="coordenador.si@fepi.edu.br",
             username="coordenador.si",
+            password=settings.default_coordinator_password,
             role=UserRole.COORDINATOR,
             must_change_password=True,
         )
@@ -167,10 +185,14 @@ def seed_development_data() -> None:
             coordinator_id=coordinator_user.id,
         )
 
+        student_cpf = "00000000000"
+        student_registration_number = "00023520"
+
         student_user = get_or_create_user(
             db,
             email="aluno.teste@fepi.edu.br",
-            username="20230001",
+            username=student_registration_number,
+            password=build_initial_student_password(student_cpf),
             role=UserRole.STUDENT,
             must_change_password=True,
         )
@@ -180,8 +202,8 @@ def seed_development_data() -> None:
             user_id=student_user.id,
             course_id=course.id,
             name="Aluno Teste",
-            cpf="000.000.000-00",
-            registration_number="20230001",
+            cpf=student_cpf,
+            registration_number=student_registration_number,
         )
 
         activity_types = [
@@ -254,6 +276,7 @@ def seed_development_data() -> None:
         print("Seed de desenvolvimento executada com sucesso.")
         print(f"Root criado/validado: {root_user.username}")
         print(f"Coordenador criado/validado: {coordinator_user.username}")
+        print(f"Aluno criado/validado: {student_user.username}")
         print(f"Curso criado/validado: {course.name}")
 
     except Exception:
