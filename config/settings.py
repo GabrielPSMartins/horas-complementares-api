@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     default_root_password: str
     default_coordinator_password: str
 
+    minio_endpoint: str
+    minio_access_key: str
+    minio_secret_key: str
+    minio_bucket_name: str
+    minio_secure: bool
+    upload_max_size_mb: int
 
     model_config = SettingsConfigDict(
         env_file=".env",
