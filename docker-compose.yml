@@ -27,9 +27,22 @@ services:
       - postgres
     networks:
       - horas_complementares_network
+  minio:
+    image: minio/minio:latest
+    container_name: horas_complementares_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
 
 volumes:
   postgres_data:
+  minio_data:
 
 networks:
   horas_complementares_network:

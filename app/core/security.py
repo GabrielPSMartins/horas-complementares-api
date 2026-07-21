@@ -26,7 +26,7 @@ def create_access_token(
     expire = datetime.now(timezone.utc) + (
         expires_delta
         if expires_delta is not None
-        else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        else timedelta(minutes=settings.access_token_expire_minutes)
     )
 
     payload: dict[str, Any] = {
@@ -37,8 +37,8 @@ def create_access_token(
 
     return jwt.encode(
         payload,
-        settings.SECRET_KEY,
-        algorithm=settings.ALGORITHM,
+        settings.secret_key,
+        algorithm=settings.algorithm,
     )
 
 
@@ -46,8 +46,8 @@ def decode_access_token(token: str) -> dict[str, Any]:
     try:
         return jwt.decode(
             token,
-            settings.SECRET_KEY,
-            algorithms=[settings.ALGORITHM],
+            settings.secret_key,
+            algorithms=[settings.algorithm],
         )
     except JWTError as exc:
         raise ValueError("Invalid token") from exc
