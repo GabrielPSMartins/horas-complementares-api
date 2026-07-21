@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, date, datetime
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -15,6 +15,8 @@ from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.activity_request import ActivityRequestResponse
 from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
+from app.schemas.pagination import PaginatedResponse
+from app.services.activity_request_query_service import ActivityRequestQueryService
 from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
 from app.services.hours_service import HoursService
 from app.services.storage import (
@@ -25,6 +27,52 @@ from app.services.storage import (
 )
 
 router = APIRouter(prefix="/activity-requests", tags=["activity-requests"])
+
+
+@router.get("/me", response_model=PaginatedResponse[ActivityRequestResponse])
+def list_my_activity_requests(
+    status_filter: ActivityRequestStatus | None = Query(default=None, alias="status"),
+    activity_type_id: uuid.UUID | None = Query(default=None),
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[ActivityRequestResponse]:
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas alunos podem acessar suas próprias solicitações.",
+        )
+
+    query_service = ActivityRequestQueryService(db)
+
+    student = query_service.get_student_by_user_id(db, current_user.id)
+
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Perfil de aluno não encontrado.",
+        )
+
+    items, total = query_service.list_by_student(
+        student_id=student.id,
+        status=status_filter,
+        activity_type_id=activity_type_id,
+        start_date=start_date,
+        end_date=end_date,
+        page=page,
+        page_size=page_size,
+    )
+
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=query_service.calculate_total_pages(total, page_size),
+    )
 
 
 @router.post("", response_model=ActivityRequestResponse, status_code=status.HTTP_201_CREATED)
@@ -72,7 +120,6 @@ def create_activity_request(
             detail="Curso do aluno não encontrado.",
         )
 
-    # Bloqueia nova solicitação se o aluno já atingiu o teto do curso
     hours_service = HoursService(db)
     if hours_service.has_reached_course_limit(student.id, course):
         raise HTTPException(
