@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -10,21 +10,19 @@ from app.db.dependencies import get_db
 from app.models.activity_attachment import ActivityAttachment
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.activity_type import ActivityType
+from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.activity_request import ActivityRequestResponse
+from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
+from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
+from app.services.hours_service import HoursService
 from app.services.storage import (
     InvalidFileError,
     MinioStorageService,
     StorageError,
     get_storage_service,
 )
-from app.schemas.activity_review import (
-    ActivityReviewRequest,
-    ActivityReviewResponse,
-)
-from datetime import datetime, timezone
-
 
 router = APIRouter(prefix="/activity-requests", tags=["activity-requests"])
 
@@ -62,6 +60,28 @@ def create_activity_request(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Perfil de aluno não encontrado.",
+        )
+
+    course = db.scalar(
+        select(Course).where(Course.id == student.course_id)
+    )
+
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Curso do aluno não encontrado.",
+        )
+
+    # Bloqueia nova solicitação se o aluno já atingiu o teto do curso
+    hours_service = HoursService(db)
+    if hours_service.has_reached_course_limit(student.id, course):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Você já atingiu o limite de horas complementares do curso "
+                f"({course.total_required_hours}h + {course.max_extra_hours}h de tolerância). "
+                "Novas solicitações não são permitidas."
+            ),
         )
 
     activity_type = db.scalar(
@@ -134,6 +154,7 @@ def create_activity_request(
 
     return created_request
 
+
 @router.patch(
     "/{activity_request_id}/review",
     response_model=ActivityReviewResponse,
@@ -143,78 +164,19 @@ def review_activity_request(
     payload: ActivityReviewRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
-    if current_user.role != UserRole.COORDINATOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Somente coordenadores podem revisar solicitações.",
-        )
+) -> ActivityRequest:
+    service = ActivityReviewService(db)
 
-    activity_request = db.scalar(
-        select(ActivityRequest)
-        .options(
-            selectinload(ActivityRequest.student).selectinload(Student.course)
+    try:
+        return service.review(
+            activity_request_id=activity_request_id,
+            current_user=current_user,
+            status=payload.status,
+            accepted_hours=payload.accepted_hours,
+            rejection_reason=payload.rejection_reason,
         )
-        .where(ActivityRequest.id == activity_request_id)
-    )
-
-    if activity_request is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Solicitação não encontrada.",
-        )
-
-    if activity_request.status != ActivityRequestStatus.PENDING:
+    except ActivityReviewError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A solicitação já foi analisada.",
-        )
-
-    if activity_request.student.course.coordinator_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não possui permissão para revisar esta solicitação.",
-        )
-
-    if payload.status == ActivityRequestStatus.APPROVED:
-
-        if payload.accepted_hours is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="accepted_hours é obrigatório.",
-            )
-
-        if payload.accepted_hours > activity_request.requested_hours:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="accepted_hours não pode ser maior que requested_hours.",
-            )
-
-        activity_request.accepted_hours = payload.accepted_hours
-        activity_request.rejection_reason = None
-
-    elif payload.status == ActivityRequestStatus.REJECTED:
-
-        if not payload.rejection_reason:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Informe o motivo da rejeição.",
-            )
-
-        activity_request.accepted_hours = 0
-        activity_request.rejection_reason = payload.rejection_reason
-
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Status inválido para revisão.",
-        )
-
-    activity_request.status = payload.status
-    activity_request.reviewed_by_id = current_user.id
-    activity_request.reviewed_at = datetime.now(timezone.utc)
-
-    db.commit()
-    db.refresh(activity_request)
-
-    return activity_request
+            detail=str(exc),
+        ) from exc
