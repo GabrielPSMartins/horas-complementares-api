@@ -16,6 +16,10 @@ from app.models.user import User, UserRole
 from app.schemas.activity_request import ActivityRequestResponse
 from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
 from app.schemas.pagination import PaginatedResponse
+from app.services.activity_request_action_service import (
+    ActivityRequestActionError,
+    ActivityRequestActionService,
+)
 from app.services.activity_request_query_service import ActivityRequestQueryService
 from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
 from app.services.hours_service import HoursService
@@ -200,6 +204,32 @@ def create_activity_request(
         )
 
     return created_request
+
+
+@router.patch("/{activity_request_id}/cancel", response_model=ActivityRequestResponse)
+def cancel_activity_request(
+    activity_request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ActivityRequest:
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas alunos podem cancelar suas próprias solicitações.",
+        )
+
+    service = ActivityRequestActionService(db)
+
+    try:
+        return service.cancel(
+            activity_request_id=activity_request_id,
+            user_id=current_user.id,
+        )
+    except ActivityRequestActionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
 
 
 @router.patch(
