@@ -13,7 +13,10 @@ from app.models.activity_type import ActivityType
 from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
-from app.schemas.activity_request import ActivityRequestResponse
+from app.schemas.activity_request import (
+    ActivityRequestCoordinatorResponse,
+    ActivityRequestResponse,
+)
 from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
 from app.schemas.pagination import PaginatedResponse
 from app.services.activity_request_action_service import (
@@ -72,6 +75,71 @@ def list_my_activity_requests(
 
     return PaginatedResponse(
         items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=query_service.calculate_total_pages(total, page_size),
+    )
+
+
+@router.get(
+    "/coordinator",
+    response_model=PaginatedResponse[ActivityRequestCoordinatorResponse],
+)
+def list_coordinator_activity_requests(
+    status_filter: ActivityRequestStatus | None = Query(default=None, alias="status"),
+    activity_type_id: uuid.UUID | None = Query(default=None),
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    search: str | None = Query(
+        default=None,
+        description="Busca por nome ou matrícula do aluno",
+    ),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[ActivityRequestCoordinatorResponse]:
+    if current_user.role != UserRole.COORDINATOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas coordenadores podem acessar esta listagem.",
+        )
+
+    course = db.scalar(
+        select(Course).where(Course.coordinator_id == current_user.id)
+    )
+
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nenhum curso vinculado a este coordenador.",
+        )
+
+    query_service = ActivityRequestQueryService(db)
+
+    items, total = query_service.list_by_coordinator_course(
+        course_id=course.id,
+        status=status_filter,
+        activity_type_id=activity_type_id,
+        start_date=start_date,
+        end_date=end_date,
+        search=search,
+        page=page,
+        page_size=page_size,
+    )
+
+    response_items = [
+        ActivityRequestCoordinatorResponse(
+            **ActivityRequestResponse.model_validate(item).model_dump(),
+            student_name=item.student.name,
+            student_registration_number=item.student.registration_number,
+        )
+        for item in items
+    ]
+
+    return PaginatedResponse(
+        items=response_items,
         total=total,
         page=page,
         page_size=page_size,

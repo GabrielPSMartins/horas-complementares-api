@@ -38,3 +38,8 @@ class ActivityRequestResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ActivityRequestCoordinatorResponse(ActivityRequestResponse):
+
+    student_name: str
+    student_registration_number: str
