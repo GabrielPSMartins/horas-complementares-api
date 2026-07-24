@@ -325,3 +325,25 @@ def review_activity_request(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
+
+@router.patch(
+    "/{activity_request_id}/assume",
+    response_model=ActivityReviewResponse,
+)
+def assume_activity_request(
+    activity_request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ActivityRequest:
+    service = ActivityReviewService(db)
+
+    try:
+        return service.assume(
+            activity_request_id=activity_request_id,
+            current_user=current_user,
+        )
+    except ActivityReviewError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc

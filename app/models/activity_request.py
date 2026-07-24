@@ -53,6 +53,16 @@ class ActivityRequest(Base):
 
     rejection_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    in_review_by_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+    )
+    in_review_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     reviewed_by_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
@@ -89,6 +99,11 @@ class ActivityRequest(Base):
         "User",
         back_populates="reviewed_activity_requests",
         foreign_keys=[reviewed_by_id],
+    )
+
+    in_review_by = relationship(
+        "User",
+        foreign_keys=[in_review_by_id],
     )
 
     attachments = relationship(
