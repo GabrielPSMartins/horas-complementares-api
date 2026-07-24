@@ -17,12 +17,14 @@ from app.schemas.activity_request import (
     ActivityRequestCoordinatorResponse,
     ActivityRequestResponse,
 )
+from app.schemas.activity_request_history import ActivityRequestHistoryResponse
 from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
 from app.schemas.pagination import PaginatedResponse
 from app.services.activity_request_action_service import (
     ActivityRequestActionError,
     ActivityRequestActionService,
 )
+from app.services.activity_request_history_service import ActivityRequestHistoryService
 from app.services.activity_request_query_service import ActivityRequestQueryService
 from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
 from app.services.hours_service import HoursService
@@ -257,6 +259,17 @@ def create_activity_request(
     )
 
     db.add(attachment)
+
+    history_service = ActivityRequestHistoryService(db)
+    history_service.record(
+        activity_request_id=activity_request.id,
+        changed_by_id=current_user.id,
+        previous_status=None,
+        new_status=ActivityRequestStatus.PENDING,
+        new_accepted_hours=None,
+        comment="Solicitação criada pelo aluno.",
+    )
+
     db.commit()
 
     created_request = db.scalar(
@@ -272,6 +285,51 @@ def create_activity_request(
         )
 
     return created_request
+
+
+@router.get(
+    "/{activity_request_id}/history",
+    response_model=list[ActivityRequestHistoryResponse],
+)
+def get_activity_request_history(
+    activity_request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    activity_request = db.scalar(
+        select(ActivityRequest)
+        .options(
+            selectinload(ActivityRequest.history_items),
+            selectinload(ActivityRequest.student).selectinload(Student.course),
+        )
+        .where(ActivityRequest.id == activity_request_id)
+    )
+
+    if activity_request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Solicitação não encontrada.",
+        )
+
+    is_owner_student = (
+        current_user.role == UserRole.STUDENT
+        and activity_request.student.user_id == current_user.id
+    )
+    is_course_coordinator = (
+        current_user.role == UserRole.COORDINATOR
+        and activity_request.student.course.coordinator_id == current_user.id
+    )
+
+    if not (is_owner_student or is_course_coordinator):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não possui permissão para ver o histórico desta solicitação.",
+        )
+
+    return sorted(
+        activity_request.history_items,
+        key=lambda item: item.created_at,
+    )
 
 
 @router.patch("/{activity_request_id}/cancel", response_model=ActivityRequestResponse)
@@ -301,6 +359,29 @@ def cancel_activity_request(
 
 
 @router.patch(
+    "/{activity_request_id}/assume",
+    response_model=ActivityReviewResponse,
+)
+def assume_activity_request(
+    activity_request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ActivityRequest:
+    service = ActivityReviewService(db)
+
+    try:
+        return service.assume(
+            activity_request_id=activity_request_id,
+            current_user=current_user,
+        )
+    except ActivityReviewError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@router.patch(
     "/{activity_request_id}/review",
     response_model=ActivityReviewResponse,
 )
@@ -319,28 +400,6 @@ def review_activity_request(
             status=payload.status,
             accepted_hours=payload.accepted_hours,
             rejection_reason=payload.rejection_reason,
-        )
-    except ActivityReviewError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
-
-@router.patch(
-    "/{activity_request_id}/assume",
-    response_model=ActivityReviewResponse,
-)
-def assume_activity_request(
-    activity_request_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-) -> ActivityRequest:
-    service = ActivityReviewService(db)
-
-    try:
-        return service.assume(
-            activity_request_id=activity_request_id,
-            current_user=current_user,
         )
     except ActivityReviewError as exc:
         raise HTTPException(
