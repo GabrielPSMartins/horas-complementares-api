@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.student import Student
 from app.models.user import User, UserRole
+from app.services.activity_request_history_service import ActivityRequestHistoryService
 from app.services.hours_service import HoursService
 
 
@@ -19,6 +20,7 @@ class ActivityReviewService:
     def __init__(self, db: Session):
         self.db = db
         self.hours_service = HoursService(db)
+        self.history_service = ActivityRequestHistoryService(db)
 
     def assume(
         self,
@@ -53,9 +55,19 @@ class ActivityReviewService:
                 f"Status atual: {activity_request.status.value}."
             )
 
+        previous_status = activity_request.status
+
         activity_request.status = ActivityRequestStatus.IN_REVIEW
         activity_request.in_review_by_id = current_user.id
         activity_request.in_review_at = datetime.now(UTC)
+
+        self.history_service.record(
+            activity_request_id=activity_request.id,
+            changed_by_id=current_user.id,
+            previous_status=previous_status,
+            new_status=ActivityRequestStatus.IN_REVIEW,
+            comment="Assumida para análise pelo coordenador.",
+        )
 
         self.db.commit()
         self.db.refresh(activity_request)
@@ -103,16 +115,21 @@ class ActivityReviewService:
                 "Você não possui permissão para revisar esta solicitação."
             )
 
+        previous_status = activity_request.status
+        previous_accepted_hours = activity_request.accepted_hours
+
         if status == ActivityRequestStatus.APPROVED:
             self._validate_approval(activity_request, accepted_hours)
             activity_request.accepted_hours = accepted_hours
             activity_request.rejection_reason = None
+            history_comment = None
 
         elif status == ActivityRequestStatus.REJECTED:
             if not rejection_reason:
                 raise ActivityReviewError("Informe o motivo da rejeição.")
             activity_request.accepted_hours = 0
             activity_request.rejection_reason = rejection_reason
+            history_comment = rejection_reason
 
         else:
             raise ActivityReviewError("Status inválido para revisão.")
@@ -120,6 +137,16 @@ class ActivityReviewService:
         activity_request.status = status
         activity_request.reviewed_by_id = current_user.id
         activity_request.reviewed_at = datetime.now(UTC)
+
+        self.history_service.record(
+            activity_request_id=activity_request.id,
+            changed_by_id=current_user.id,
+            previous_status=previous_status,
+            new_status=status,
+            previous_accepted_hours=previous_accepted_hours,
+            new_accepted_hours=activity_request.accepted_hours,
+            comment=history_comment,
+        )
 
         self.db.commit()
         self.db.refresh(activity_request)
