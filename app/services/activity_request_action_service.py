@@ -47,6 +47,12 @@ class ActivityRequestActionService:
                 "Você não possui permissão para cancelar esta solicitação."
             )
 
+        if activity_request.status == ActivityRequestStatus.IN_REVIEW:
+            raise ActivityRequestActionError(
+                "Esta solicitação já está em análise pelo coordenador "
+                "e não pode mais ser cancelada."
+            )
+
         if activity_request.status != ActivityRequestStatus.PENDING:
             raise ActivityRequestActionError(
                 "Apenas solicitações pendentes podem ser canceladas. "

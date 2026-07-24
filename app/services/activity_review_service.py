@@ -20,6 +20,48 @@ class ActivityReviewService:
         self.db = db
         self.hours_service = HoursService(db)
 
+    def assume(
+        self,
+        *,
+        activity_request_id: UUID,
+        current_user: User,
+    ) -> ActivityRequest:
+        if current_user.role != UserRole.COORDINATOR:
+            raise ActivityReviewError(
+                "Somente coordenadores podem assumir solicitações para análise."
+            )
+
+        activity_request = self.db.scalar(
+            select(ActivityRequest)
+            .options(
+                selectinload(ActivityRequest.student).selectinload(Student.course)
+            )
+            .where(ActivityRequest.id == activity_request_id)
+        )
+
+        if activity_request is None:
+            raise ActivityReviewError("Solicitação não encontrada.")
+
+        if activity_request.student.course.coordinator_id != current_user.id:
+            raise ActivityReviewError(
+                "Você não possui permissão para assumir esta solicitação."
+            )
+
+        if activity_request.status != ActivityRequestStatus.PENDING:
+            raise ActivityReviewError(
+                "Apenas solicitações pendentes podem ser assumidas para análise. "
+                f"Status atual: {activity_request.status.value}."
+            )
+
+        activity_request.status = ActivityRequestStatus.IN_REVIEW
+        activity_request.in_review_by_id = current_user.id
+        activity_request.in_review_at = datetime.now(UTC)
+
+        self.db.commit()
+        self.db.refresh(activity_request)
+
+        return activity_request
+
     def review(
         self,
         *,
@@ -47,12 +89,18 @@ class ActivityReviewService:
         if activity_request is None:
             raise ActivityReviewError("Solicitação não encontrada.")
 
-        if activity_request.status != ActivityRequestStatus.PENDING:
-            raise ActivityReviewError("A solicitação já foi analisada.")
+        if activity_request.status not in (
+            ActivityRequestStatus.PENDING,
+            ActivityRequestStatus.IN_REVIEW,
+        ):
+            raise ActivityReviewError(
+                "Apenas solicitações pendentes ou em análise podem ser revisadas. "
+                f"Status atual: {activity_request.status.value}."
+            )
 
         if activity_request.student.course.coordinator_id != current_user.id:
             raise ActivityReviewError(
-                "Você não possui permissão para analisar esta solicitação."
+                "Você não possui permissão para revisar esta solicitação."
             )
 
         if status == ActivityRequestStatus.APPROVED:
@@ -83,7 +131,6 @@ class ActivityReviewService:
         activity_request: ActivityRequest,
         accepted_hours: int | None,
     ) -> None:
-    #   Valida se a aprovação da solicitação atende às regras de negócio.
         if accepted_hours is None:
             raise ActivityReviewError(
                 "accepted_hours é obrigatório na aprovação."
@@ -101,14 +148,12 @@ class ActivityReviewService:
 
         activity_type = activity_request.activity_type
 
-        # Valida limite por certificado definido no tipo de atividade
         if accepted_hours > activity_type.max_hours_per_request:
             raise ActivityReviewError(
                 f"accepted_hours não pode ultrapassar o limite por certificado "
                 f"deste tipo de atividade ({activity_type.max_hours_per_request}h)."
             )
 
-        # Valida limite total acumulado por tipo (se o tipo tiver esse limite definido)
         if activity_type.max_hours_total is not None:
             already_approved = self.hours_service.get_approved_hours_by_type(
                 student_id=activity_request.student_id,
