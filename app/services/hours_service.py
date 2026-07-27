@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.activity_type import ActivityType
 from app.models.course import Course
+from app.models.student import Student
+from app.models.user import User
 
 
 class HoursService:
@@ -108,4 +110,48 @@ class HoursService:
             "has_reached_limit": total_approved >= limit,
             "requests_by_status": self.get_hours_by_status(student_id),
             "approved_hours_by_type": by_type,
+        }
+
+    def build_report(self, student: Student, course: Course) -> dict:
+        summary = self.get_hours_summary(student.id, course)
+
+        approved_requests = list(
+            self.db.scalars(
+                select(ActivityRequest)
+                .options(selectinload(ActivityRequest.activity_type))
+                .where(
+                    ActivityRequest.student_id == student.id,
+                    ActivityRequest.status == ActivityRequestStatus.APPROVED,
+                )
+                .order_by(ActivityRequest.activity_date.asc())
+            ).all()
+        )
+
+        user = self.db.get(User, student.user_id)
+
+        return {
+            "student": {
+                "name": student.name,
+                "email": user.email if user else None,
+                "cpf": student.cpf,
+                "registration_number": student.registration_number,
+                "enrollment_date": student.enrollment_date,
+            },
+            "course": {
+                "name": course.name,
+                "code": course.code,
+                "total_required_hours": course.total_required_hours,
+                "max_extra_hours": course.max_extra_hours,
+            },
+            "summary": summary,
+            "approved_activities": [
+                {
+                    "title": req.title,
+                    "activity_type_name": req.activity_type.name,
+                    "accepted_hours": req.accepted_hours,
+                    "activity_date": req.activity_date,
+                    "location": req.location,
+                }
+                for req in approved_requests
+            ],
         }
