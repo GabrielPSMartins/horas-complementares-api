@@ -4,16 +4,66 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import get_current_user, require_roles
 from app.db.dependencies import get_db
 from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.activity_report import ActivityReportResponse
 from app.schemas.hours_summary import HoursSummaryResponse
+from app.schemas.student import StudentCreateRequest, StudentCreateResponse
 from app.services.hours_service import HoursService
+from app.services.student_registration_service import (
+    StudentRegistrationError,
+    StudentRegistrationService,
+)
 
 router = APIRouter(prefix="/students", tags=["students"])
+
+
+@router.post(
+    "",
+    response_model=StudentCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_student(
+    payload: StudentCreateRequest,
+    current_user: User = Depends(
+        require_roles(UserRole.COORDINATOR, UserRole.ROOT)
+    ),
+    db: Session = Depends(get_db),
+) -> Student:
+    service = StudentRegistrationService(db)
+
+    try:
+        student = service.register(
+            name=payload.name,
+            email=payload.email,
+            cpf=payload.cpf,
+            registration_number=payload.registration_number,
+            enrollment_date=payload.enrollment_date,
+            expected_graduation_date=payload.expected_graduation_date,
+            course_id=payload.course_id,
+            current_user=current_user,
+        )
+    except StudentRegistrationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    return StudentCreateResponse(
+        id=student.id,
+        user_id=student.user_id,
+        name=student.name,
+        email=payload.email,
+        cpf=student.cpf,
+        registration_number=student.registration_number,
+        username=student.registration_number,
+        course_id=student.course_id,
+        enrollment_date=student.enrollment_date,
+        created_at=student.created_at,
+    )
 
 
 @router.get("/me/hours-summary", response_model=HoursSummaryResponse)
