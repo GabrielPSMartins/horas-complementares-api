@@ -155,3 +155,30 @@ class HoursService:
                 for req in approved_requests
             ],
         }
+
+    def get_course_requests_summary(self, course_id: uuid.UUID) -> dict:
+        rows = self.db.execute(
+            select(
+                ActivityRequest.status,
+                func.count(ActivityRequest.id),
+            )
+            .join(Student, Student.id == ActivityRequest.student_id)
+            .where(Student.course_id == course_id)
+            .group_by(ActivityRequest.status)
+        ).all()
+
+        counts = {status: 0 for status in ActivityRequestStatus}
+        for status, count in rows:
+            counts[status] = count
+
+        total_students = self.db.scalar(
+            select(func.count(Student.id)).where(
+                Student.course_id == course_id,
+                Student.is_active.is_(True),
+            )
+        )
+
+        return {
+            "requests_by_status": counts,
+            "total_active_students": int(total_students or 0),
+        }
