@@ -4,7 +4,7 @@ from collections.abc import Generator
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-from config.settings import settings
+from backend.config.settings import settings
 
 
 logger = logging.getLogger(__name__)

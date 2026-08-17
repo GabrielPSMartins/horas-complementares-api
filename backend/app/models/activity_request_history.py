@@ -5,8 +5,8 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
-from app.models.activity_request import ActivityRequestStatus
+from backend.app.db.base import Base
+from backend.app.models.activity_request import ActivityRequestStatus
 
 
 class ActivityRequestHistory(Base):

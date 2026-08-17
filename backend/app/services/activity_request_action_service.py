@@ -3,9 +3,9 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models.activity_request import ActivityRequest, ActivityRequestStatus
-from app.models.student import Student
-from app.services.activity_request_history_service import ActivityRequestHistoryService
+from backend.app.models.activity_request import ActivityRequest, ActivityRequestStatus
+from backend.app.models.student import Student
+from backend.app.services.activity_request_history_service import ActivityRequestHistoryService
 
 
 class ActivityRequestActionError(Exception):

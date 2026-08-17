@@ -1,4 +1,4 @@
-from app.api.routes import health
+from backend.app.api.routes import health
 
 
 def test_health_check(monkeypatch) -> None:

@@ -3,7 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
-from app.models.activity_request import ActivityRequestStatus
+from backend.app.models.activity_request import ActivityRequestStatus
 
 
 class ActivityAttachmentResponse(BaseModel):

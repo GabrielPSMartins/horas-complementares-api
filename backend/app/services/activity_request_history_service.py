@@ -2,8 +2,8 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from app.models.activity_request import ActivityRequestStatus
-from app.models.activity_request_history import ActivityRequestHistory
+from backend.app.models.activity_request import ActivityRequestStatus
+from backend.app.models.activity_request_history import ActivityRequestHistory
 
 
 class ActivityRequestHistoryService:

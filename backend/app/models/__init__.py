@@ -1,10 +1,10 @@
-from app.models.activity_attachment import ActivityAttachment
-from app.models.activity_request import ActivityRequest, ActivityRequestStatus
-from app.models.activity_request_history import ActivityRequestHistory
-from app.models.activity_type import ActivityType
-from app.models.course import Course
-from app.models.student import Student
-from app.models.user import User, UserRole
+from backend.app.models.activity_attachment import ActivityAttachment
+from backend.app.models.activity_request import ActivityRequest, ActivityRequestStatus
+from backend.app.models.activity_request_history import ActivityRequestHistory
+from backend.app.models.activity_type import ActivityType
+from backend.app.models.course import Course
+from backend.app.models.student import Student
+from backend.app.models.user import User, UserRole
 
 __all__ = [
     "ActivityAttachment",
