@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from backend.app.api.dependencies.auth import require_roles
-from backend.app.db.dependencies import get_db
-from backend.app.models.course import Course
-from backend.app.models.user import User, UserRole
-from backend.app.schemas.dashboard import CoordinatorDashboardResponse
-from backend.app.services.hours_service import HoursService
+from app.api.dependencies.auth import require_roles
+from app.db.dependencies import get_db
+from app.models.course import Course
+from app.models.user import User, UserRole
+from app.schemas.dashboard import CoordinatorDashboardResponse
+from app.services.hours_service import HoursService
 
 router = APIRouter(prefix="/coordinator", tags=["coordinator"])
 

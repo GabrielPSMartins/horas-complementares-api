@@ -6,7 +6,7 @@ from fastapi import UploadFile
 from minio import Minio
 from minio.error import S3Error
 
-from backend.config.settings import settings
+from config.settings import settings
 
 
 ALLOWED_CONTENT_TYPES = {
