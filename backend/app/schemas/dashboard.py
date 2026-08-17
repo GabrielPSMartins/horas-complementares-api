@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from backend.app.models.activity_request import ActivityRequestStatus
+from app.models.activity_request import ActivityRequestStatus
 
 
 class CoordinatorDashboardResponse(BaseModel):

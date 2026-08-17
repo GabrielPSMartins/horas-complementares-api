@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from backend.app.models.activity_request import ActivityRequestStatus
+from app.models.activity_request import ActivityRequestStatus
 
 
 class ActivityReviewRequest(BaseModel):

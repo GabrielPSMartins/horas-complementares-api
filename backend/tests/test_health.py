@@ -1,11 +1,13 @@
-from backend.app.api.routes import health
+from fastapi import Response
+
+from app.api.routes import health
 
 
 def test_health_check(monkeypatch) -> None:
     monkeypatch.setattr(health, "check_database_connection", lambda: True)
 
-    assert health.health_check() == {
-        "status": "ok",
-        "app": "running",
-        "database": "connected",
-    }
+    result = health.health_check(Response())
+
+    assert result.status == "ok"
+    assert result.app == "running"
+    assert result.database == "connected"

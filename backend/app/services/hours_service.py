@@ -3,11 +3,11 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from backend.app.models.activity_request import ActivityRequest, ActivityRequestStatus
-from backend.app.models.activity_type import ActivityType
-from backend.app.models.course import Course
-from backend.app.models.student import Student
-from backend.app.models.user import User
+from app.models.activity_request import ActivityRequest, ActivityRequestStatus
+from app.models.activity_type import ActivityType
+from app.models.course import Course
+from app.models.student import Student
+from app.models.user import User
 
 
 class HoursService:
