@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Response, status
 from pydantic import BaseModel
 
-from app.db.session import check_database_connection
+from backend.app.db.session import check_database_connection
 
 
 router = APIRouter(prefix="/health", tags=["Health"])

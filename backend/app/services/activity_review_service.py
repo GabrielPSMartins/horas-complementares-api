@@ -4,11 +4,11 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models.activity_request import ActivityRequest, ActivityRequestStatus
-from app.models.student import Student
-from app.models.user import User, UserRole
-from app.services.activity_request_history_service import ActivityRequestHistoryService
-from app.services.hours_service import HoursService
+from backend.app.models.activity_request import ActivityRequest, ActivityRequestStatus
+from backend.app.models.student import Student
+from backend.app.models.user import User, UserRole
+from backend.app.services.activity_request_history_service import ActivityRequestHistoryService
+from backend.app.services.hours_service import HoursService
 
 
 class ActivityReviewError(Exception):

@@ -5,10 +5,10 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.security import hash_password
-from app.models.course import Course
-from app.models.student import Student
-from app.models.user import User, UserRole
+from backend.app.core.security import hash_password
+from backend.app.models.course import Course
+from backend.app.models.student import Student
+from backend.app.models.user import User, UserRole
 
 
 class StudentRegistrationError(Exception):

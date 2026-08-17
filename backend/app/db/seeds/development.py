@@ -3,13 +3,13 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.security import hash_password
-from app.db.session import SessionLocal
-from app.models.activity_type import ActivityType
-from app.models.course import Course
-from app.models.student import Student
-from app.models.user import User, UserRole
-from config.settings import settings
+from backend.app.core.security import hash_password
+from backend.app.db.session import SessionLocal
+from backend.app.models.activity_type import ActivityType
+from backend.app.models.course import Course
+from backend.app.models.student import Student
+from backend.app.models.user import User, UserRole
+from backend.config.settings import settings
 
 
 def build_initial_student_password(cpf: str) -> str:

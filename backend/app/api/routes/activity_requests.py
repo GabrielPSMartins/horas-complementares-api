@@ -5,30 +5,30 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.dependencies.auth import get_current_user
-from app.db.dependencies import get_db
-from app.models.activity_attachment import ActivityAttachment
-from app.models.activity_request import ActivityRequest, ActivityRequestStatus
-from app.models.activity_type import ActivityType
-from app.models.course import Course
-from app.models.student import Student
-from app.models.user import User, UserRole
-from app.schemas.activity_request import (
+from backend.app.api.dependencies.auth import get_current_user
+from backend.app.db.dependencies import get_db
+from backend.app.models.activity_attachment import ActivityAttachment
+from backend.app.models.activity_request import ActivityRequest, ActivityRequestStatus
+from backend.app.models.activity_type import ActivityType
+from backend.app.models.course import Course
+from backend.app.models.student import Student
+from backend.app.models.user import User, UserRole
+from backend.app.schemas.activity_request import (
     ActivityRequestCoordinatorResponse,
     ActivityRequestResponse,
 )
-from app.schemas.activity_request_history import ActivityRequestHistoryResponse
-from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
-from app.schemas.pagination import PaginatedResponse
-from app.services.activity_request_action_service import (
+from backend.app.schemas.activity_request_history import ActivityRequestHistoryResponse
+from backend.app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
+from backend.app.schemas.pagination import PaginatedResponse
+from backend.app.services.activity_request_action_service import (
     ActivityRequestActionError,
     ActivityRequestActionService,
 )
-from app.services.activity_request_history_service import ActivityRequestHistoryService
-from app.services.activity_request_query_service import ActivityRequestQueryService
-from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
-from app.services.hours_service import HoursService
-from app.services.storage import (
+from backend.app.services.activity_request_history_service import ActivityRequestHistoryService
+from backend.app.services.activity_request_query_service import ActivityRequestQueryService
+from backend.app.services.activity_review_service import ActivityReviewError, ActivityReviewService
+from backend.app.services.hours_service import HoursService
+from backend.app.services.storage import (
     InvalidFileError,
     MinioStorageService,
     StorageError,

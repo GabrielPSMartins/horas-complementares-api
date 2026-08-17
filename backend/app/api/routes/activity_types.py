@@ -4,13 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user
-from app.db.dependencies import get_db
-from app.models.activity_type import ActivityType
-from app.models.course import Course
-from app.models.student import Student
-from app.models.user import User, UserRole
-from app.schemas.activity_type import ActivityTypeResponse
+from backend.app.api.dependencies.auth import get_current_user
+from backend.app.db.dependencies import get_db
+from backend.app.models.activity_type import ActivityType
+from backend.app.models.course import Course
+from backend.app.models.student import Student
+from backend.app.models.user import User, UserRole
+from backend.app.schemas.activity_type import ActivityTypeResponse
 
 
 router = APIRouter(prefix="/activity-types", tags=["activity-types"])
