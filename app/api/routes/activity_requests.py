@@ -13,13 +13,18 @@ from app.models.activity_type import ActivityType
 from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
-from app.schemas.activity_request import ActivityRequestResponse
+from app.schemas.activity_request import (
+    ActivityRequestCoordinatorResponse,
+    ActivityRequestResponse,
+)
+from app.schemas.activity_request_history import ActivityRequestHistoryResponse
 from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
 from app.schemas.pagination import PaginatedResponse
 from app.services.activity_request_action_service import (
     ActivityRequestActionError,
     ActivityRequestActionService,
 )
+from app.services.activity_request_history_service import ActivityRequestHistoryService
 from app.services.activity_request_query_service import ActivityRequestQueryService
 from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
 from app.services.hours_service import HoursService
@@ -72,6 +77,71 @@ def list_my_activity_requests(
 
     return PaginatedResponse(
         items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=query_service.calculate_total_pages(total, page_size),
+    )
+
+
+@router.get(
+    "/coordinator",
+    response_model=PaginatedResponse[ActivityRequestCoordinatorResponse],
+)
+def list_coordinator_activity_requests(
+    status_filter: ActivityRequestStatus | None = Query(default=None, alias="status"),
+    activity_type_id: uuid.UUID | None = Query(default=None),
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    search: str | None = Query(
+        default=None,
+        description="Busca por nome ou matrícula do aluno",
+    ),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[ActivityRequestCoordinatorResponse]:
+    if current_user.role != UserRole.COORDINATOR:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas coordenadores podem acessar esta listagem.",
+        )
+
+    course = db.scalar(
+        select(Course).where(Course.coordinator_id == current_user.id)
+    )
+
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Nenhum curso vinculado a este coordenador.",
+        )
+
+    query_service = ActivityRequestQueryService(db)
+
+    items, total = query_service.list_by_coordinator_course(
+        course_id=course.id,
+        status=status_filter,
+        activity_type_id=activity_type_id,
+        start_date=start_date,
+        end_date=end_date,
+        search=search,
+        page=page,
+        page_size=page_size,
+    )
+
+    response_items = [
+        ActivityRequestCoordinatorResponse(
+            **ActivityRequestResponse.model_validate(item).model_dump(),
+            student_name=item.student.name,
+            student_registration_number=item.student.registration_number,
+        )
+        for item in items
+    ]
+
+    return PaginatedResponse(
+        items=response_items,
         total=total,
         page=page,
         page_size=page_size,
@@ -189,6 +259,17 @@ def create_activity_request(
     )
 
     db.add(attachment)
+
+    history_service = ActivityRequestHistoryService(db)
+    history_service.record(
+        activity_request_id=activity_request.id,
+        changed_by_id=current_user.id,
+        previous_status=None,
+        new_status=ActivityRequestStatus.PENDING,
+        new_accepted_hours=None,
+        comment="Solicitação criada pelo aluno.",
+    )
+
     db.commit()
 
     created_request = db.scalar(
@@ -204,6 +285,51 @@ def create_activity_request(
         )
 
     return created_request
+
+
+@router.get(
+    "/{activity_request_id}/history",
+    response_model=list[ActivityRequestHistoryResponse],
+)
+def get_activity_request_history(
+    activity_request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    activity_request = db.scalar(
+        select(ActivityRequest)
+        .options(
+            selectinload(ActivityRequest.history_items),
+            selectinload(ActivityRequest.student).selectinload(Student.course),
+        )
+        .where(ActivityRequest.id == activity_request_id)
+    )
+
+    if activity_request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Solicitação não encontrada.",
+        )
+
+    is_owner_student = (
+        current_user.role == UserRole.STUDENT
+        and activity_request.student.user_id == current_user.id
+    )
+    is_course_coordinator = (
+        current_user.role == UserRole.COORDINATOR
+        and activity_request.student.course.coordinator_id == current_user.id
+    )
+
+    if not (is_owner_student or is_course_coordinator):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não possui permissão para ver o histórico desta solicitação.",
+        )
+
+    return sorted(
+        activity_request.history_items,
+        key=lambda item: item.created_at,
+    )
 
 
 @router.patch("/{activity_request_id}/cancel", response_model=ActivityRequestResponse)
@@ -226,6 +352,29 @@ def cancel_activity_request(
             user_id=current_user.id,
         )
     except ActivityRequestActionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@router.patch(
+    "/{activity_request_id}/assume",
+    response_model=ActivityReviewResponse,
+)
+def assume_activity_request(
+    activity_request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ActivityRequest:
+    service = ActivityReviewService(db)
+
+    try:
+        return service.assume(
+            activity_request_id=activity_request_id,
+            current_user=current_user,
+        )
+    except ActivityReviewError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),

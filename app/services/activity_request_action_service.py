@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.student import Student
+from app.services.activity_request_history_service import ActivityRequestHistoryService
 
 
 class ActivityRequestActionError(Exception):
@@ -15,6 +16,7 @@ class ActivityRequestActionService:
 
     def __init__(self, db: Session):
         self.db = db
+        self.history_service = ActivityRequestHistoryService(db)
 
     def cancel(
         self,
@@ -47,13 +49,29 @@ class ActivityRequestActionService:
                 "Você não possui permissão para cancelar esta solicitação."
             )
 
+        if activity_request.status == ActivityRequestStatus.IN_REVIEW:
+            raise ActivityRequestActionError(
+                "Esta solicitação já está em análise pelo coordenador "
+                "e não pode mais ser cancelada."
+            )
+
         if activity_request.status != ActivityRequestStatus.PENDING:
             raise ActivityRequestActionError(
                 "Apenas solicitações pendentes podem ser canceladas. "
                 f"Status atual: {activity_request.status.value}."
             )
 
+        previous_status = activity_request.status
+
         activity_request.status = ActivityRequestStatus.CANCELED
+
+        self.history_service.record(
+            activity_request_id=activity_request.id,
+            changed_by_id=user_id,
+            previous_status=previous_status,
+            new_status=ActivityRequestStatus.CANCELED,
+            comment="Cancelado pelo aluno.",
+        )
 
         self.db.commit()
         self.db.refresh(activity_request)
