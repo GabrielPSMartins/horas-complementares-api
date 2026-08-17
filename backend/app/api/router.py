@@ -1,8 +1,9 @@
 from fastapi import APIRouter
 
-from app.api.routes import activity_requests, activity_types, auth, health
+from app.api.routes import health
 from app.api.routes.students import router as students_router
 from app.api.routes.coordinator import router as coordinator_router
+from app.api.routes import activity_requests, activity_types, auth
 
 api_router = APIRouter()
 
