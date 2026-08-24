@@ -1,0 +1,50 @@
+/* CONFIGURAÇÕES GERAIS E VARIÁVEIS */
+:root {
+    /* Cores Principais */
+    --primary-blue: #1D4ED8;
+    --primary-hover: #1E40AF;
+    --brand-blue: #2563EB;
+    
+    /* Gradientes e Fundos */
+    --bg-page: #EEF3FA;
+    --bg-card: #FFFFFF;
+    --sidebar-gradient: linear-gradient(160deg, #103275 0%, #0D275E 50%, #0A1C44 100%);
+    
+    /* Cores de Texto */
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --text-muted: #94A3B8;
+    --text-light: #FFFFFF;
+    --text-accent: #A5B4FC;
+    
+    /* Bordas e Status */
+    --border-color: #E2E8F0;
+    --error-color: #EF4444;
+    --error-bg: #FEF2F2;
+    --error-border: #FCA5A5;
+    
+    /* Tipografia */
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Reset Global */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-family);
+}
+
+body {
+    background-color: var(--bg-page);
+    min-height: 100vh;
+    display: flex;
+    color: var(--text-primary);
+    overflow-x: hidden;
+}
+
+/* Links limpos */
+a {
+    text-decoration: none;
+    color: inherit;
+}
