@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horas Complementares - FEPI</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/componentes.css">
+</head>
+<body>
+    <div class="page-container">
+        <!-- Sidebar Esquerda -->
+        <aside class="sidebar">
+            <div class="sidebar-content">
+                <div class="brand-header">
+                    <div class="brand-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 3L1 9L12 15L21 10.09V17H23V9L12 3Z" fill="white"/>
+                            <path d="M5 13.18V17.18C5 19.4 8.13 21.2 12 21.2C15.87 21.2 19 19.4 19 17.18V13.18L12 17L5 13.18Z" fill="white"/>
+                        </svg>
+                    </div>
+                    <div class="brand-text">
+                        <h2>Horas Complementares</h2>
+                        <p>Sistemas de Informação · FEPI</p>
+                    </div>
+                </div>
+
+                <div class="hero-section">
+                    <h1>Gerencie suas<br>horas com<br>muito mais praticidade.</h1>
+                    <p class="hero-description">
+                        Envie certificados, acompanhe aprovações e mantenha controle total do seu progresso acadêmico.
+                    </p>
+                </div>
+
+                <div class="feature-list">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <span>Envio de certificados e comprovantes</span>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </div>
+                        <span>Análise ágil por coordenadores</span>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="20" x2="18" y2="10"/>
+                                <line x1="12" y1="20" x2="12" y2="4"/>
+                                <line x1="6" y1="20" x2="6" y2="14"/>
+                            </svg>
+                        </div>
+                        <span>Relatórios de progresso em tempo real</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Seção Direita (Login) -->
+        <main class="main-content">
+            <div class="login-wrapper">
+                <div class="login-card">
+                    <div class="card-header">
+                        <div class="title-row">
+                            <h1>Bem-vindo(a)</h1>
+                            <span class="emoji">👋</span>
+                        </div>
+                        <p>Entre com suas credenciais institucionais.</p>
+                    </div>
+
+                    <form class="login-form" id="loginForm">
+                        <div class="form-group">
+                            <label for="email">Matrícula <span class="required">*</span></label>
+                            <input type="text" id="email" name="email" placeholder="00000000" required autocomplete="username">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Senha <span class="required">*</span></label>
+                            <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                        </div>
+
+                        <!-- Mensagens de erro -->
+                        <div id="msg-erro" class="error-message" style="display: none;"></div>
+
+                        <button type="submit" id="btnAluno" data-tipo="aluno" class="btn btn-primary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            Entrar como Aluno
+                        </button>
+
+                        <button type="submit" id="btnCoordenador" data-tipo="coordenador" class="btn btn-secondary">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                            </svg>
+                            Entrar como Coordenador
+                        </button>
+
+                        <div class="form-footer">
+                            <a href="pages/recuperar-senha.html" class="forgot-password">Esqueci minha senha</a>
+                        </div>
+                    </form>
+                </div>
+
+                <footer class="copyright">
+                    © 2026 FEPI — Todos os direitos reservados
+                </footer>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

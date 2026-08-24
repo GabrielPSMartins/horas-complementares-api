@@ -1,0 +1,221 @@
+/* Componentes da Tela index.html */
+
+/* Header da Sidebar (Ícone, Título e Linha Divisória) */
+.brand-header {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    background-color: #2563EB;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.brand-text h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-light);
+    line-height: 1.2;
+}
+
+.brand-text p {
+    font-size: 0.75rem;
+    color: var(--text-accent);
+    margin-top: 2px;
+}
+
+/* Hero Section(Mensagem de Boas-vindas da Sidebar) */
+.hero-section h1 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+
+.hero-description {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-accent);
+    max-width: 440px;
+}
+
+/* Lista de destaques da sidebar */
+.feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 0.875rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #60A5FA;
+}
+
+.feature-card span {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #F1F5F9;
+}
+
+/* Card de Login */
+.login-card {
+    background: var(--bg-card);
+    width: 100%;
+    padding: 2.25rem 2rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05);
+}
+
+.card-header .title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-header h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.card-header p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+/* Campos de formulario */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.form-group label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+.required {
+    color: var(--error-color);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    outline: none;
+    transition: all 0.2s ease;
+    background-color: #FFFFFF;
+}
+
+.form-group input:focus {
+    border-color: var(--brand-blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Botões de Ação */
+.btn {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    color: var(--text-light);
+    border: none;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+    background-color: #FFFFFF;
+    color: var(--primary-blue);
+    border: 1px solid #BFDBFE;
+}
+
+.btn-secondary:hover {
+    background-color: #EFF6FF;
+}
+
+/* MENSAGEM DE ERRO E FOOTER DO FORMULÁRIO */
+.error-message {
+    background-color: var(--error-bg);
+    color: var(--error-color);
+    border: 1px solid var(--error-border);
+    padding: 0.75rem;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.form-footer {
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.forgot-password {
+    color: var(--primary-blue);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.copyright {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+}
