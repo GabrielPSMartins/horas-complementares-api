@@ -191,7 +191,7 @@
     background-color: #EFF6FF;
 }
 
-/* MENSAGEM DE ERRO E FOOTER DO FORMULÁRIO */
+/* Mensagem de Erro do Formulário */
 .error-message {
     background-color: var(--error-bg);
     color: var(--error-color);
