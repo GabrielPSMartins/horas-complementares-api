@@ -1,11 +1,11 @@
-/* Configurações Globais e Variáveis */
+/* Configurações Globais e Variáveis Unificadas */
 :root {
-    /* Cores Principais */
+    /* Cores Originais do Login (index.html) */
     --primary-blue: #1D4ED8;
     --primary-hover: #1E40AF;
     --brand-blue: #2563EB;
     
-    /* Gradientes e Fundos */
+    /* Fundos e Gradientes do Login */
     --bg-page: #EEF3FA;
     --bg-card: #FFFFFF;
     --sidebar-gradient: linear-gradient(160deg, #103275 0%, #0D275E 50%, #0A1C44 100%);
@@ -17,13 +17,39 @@
     --text-light: #FFFFFF;
     --text-accent: #A5B4FC;
     
-    /* Bordas e Status */
+    /* Bordas e Estados */
     --border-color: #E2E8F0;
     --error-color: #EF4444;
     --error-bg: #FEF2F2;
     --error-border: #FCA5A5;
+
+    /* Variáveis do Dashboard */
+    --dash-bg-body: #EEF3FA;
+    --dash-bg-sidebar: #0B1E40;
+    --dash-bg-sidebar-hover: #162B52;
     
-    /* Tipografia */
+    /* Cores Específicas dos Números e Status */
+    --stat-required-color: #0F172A;
+    --stat-approved-color: #059669;
+    --stat-remaining-color: #D97706;
+    --stat-pending-color: #2563EB;
+
+    --color-green: #059669;
+    --bg-green-light: #D1FAE5;
+    
+    --color-yellow: #D97706;
+    --bg-yellow-light: #FEF3C7;
+    
+    --color-red: #EF4444;
+    --bg-red-light: #FEE2E2;
+    
+    --color-blue: #2563EB;
+    --bg-blue-light: #DBEAFE;
+    
+    --color-gray: #6B7280;
+    --bg-gray-light: #F3F4F6;
+
+    --radius: 16px;
     --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -38,13 +64,18 @@
 body {
     background-color: var(--bg-page);
     min-height: 100vh;
-    display: flex;
     color: var(--text-primary);
     overflow-x: hidden;
 }
 
-/* Links limpos */
 a {
     text-decoration: none;
     color: inherit;
 }
+
+/* Utilitários Globais de Layout */
+.flex-between { display: flex; justify-content: space-between; align-items: flex-start; }
+.flex-between-center { display: flex; justify-content: space-between; align-items: center; }
+.flex-align-center { display: flex; align-items: center; gap: 12px; }
+.flex-end-center { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
+.hidden { display: none !important; }

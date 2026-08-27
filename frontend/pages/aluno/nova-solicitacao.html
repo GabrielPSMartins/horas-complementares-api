@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Solicitação - Horas Complementares</title>
+    
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>   
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · FEPI</p>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="solicitacoes.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span>Minhas Solicitações</span>
+                </a>
+                <a href="nova-solicitacao.html" class="nav-item active">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Nova Solicitação</span>
+                </a>
+                <a href="atividades.html" class="nav-item">
+                    <i data-lucide="book-open"></i>
+                    <span>Tipos de Atividades</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">--</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">Carregando...</h4>
+                        <p id="sidebar-user-role">Aluno</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="app-main">
+            <!-- Header superior -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Nova Solicitação</h1>
+                    <p>Preencha os dados da atividade realizada</p>
+                </div>
+                <div class="flex-align-center">
+                    <div class="avatar-circle small" id="top-avatar">--</div>
+                    <div>
+                        <div class="stat-label" id="top-user-name">Carregando...</div>
+                        <div class="stat-sub">Aluno</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ÁREA COM SCROLL -->
+            <div class="app-content">
+                <div class="form-container-wrapper" style="max-width: 850px; width: 100%; margin: 0 auto;">
+                    <div class="ui-card" style="padding: 32px 40px; border-radius: 16px;">
+                        
+                        <!-- CABEÇALHO DO FORMULÁRIO -->
+                        <div class="card-header" style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+                            <div class="stat-icon-wrapper blue" style="border-radius: 50%; width: 44px; height: 44px; background-color: #EFF6FF; flex-shrink: 0;">
+                                <i data-lucide="plus-circle" style="color: var(--brand-blue); width: 22px; height: 22px;"></i>
+                            </div>
+                            <div>
+                                <h1 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0; line-height: 1.2;">Nova solicitação de horas</h1>
+                                <p style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 2px;">Campos com <span class="required" style="color: var(--error-color); font-weight: bold;">*</span> são obrigatórios</p>
+                            </div>
+                        </div>
+
+                        <!-- ALERTA DE ERRO / SUCESSO -->
+                        <div id="form-alert" style="display: none; margin-bottom: 20px;"></div>
+
+                        <!-- FORMULÁRIO -->
+                        <form id="form-nova-solicitacao" class="request-form" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 20px;">
+                            
+                            <!-- Tipo de Atividade -->
+                            <div class="form-group">
+                                <label for="activity_type_id" style="font-weight: 600;">Tipo de atividade <span class="required">*</span></label>
+                                <select id="activity_type_id" name="activity_type_id" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                    <option value="" disabled selected>Selecionar...</option>
+                                </select>
+                            </div>
+
+                            <!-- Título (Antiga Descrição) -->
+                            <div class="form-group">
+                                <label for="title" style="font-weight: 600;">Título <span class="required">*</span></label>
+                                <input type="text" id="title" name="title" placeholder="Ex: Curso de Python, Mini-curso de SQL..." style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                            </div>
+
+                            <!-- Local / Instituição -->
+                            <div class="form-group">
+                                <label for="location" style="font-weight: 600;">Local / Instituição <span class="required">*</span></label>
+                                <input type="text" id="location" name="location" placeholder="Ex: Udemy, Coursera, UFMS, SENAI..." style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                            </div>
+
+                            <!-- Data e Carga Horária -->
+                            <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label for="activity_date" style="font-weight: 600;">Data da atividade <span class="required">*</span></label>
+                                    <input type="date" id="activity_date" name="activity_date" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="requested_hours" style="font-weight: 600;">Carga horária (Horas) <span class="required">*</span></label>
+                                    <input type="number" id="requested_hours" name="requested_hours" min="1" placeholder="Ex: 40" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                </div>
+                            </div>
+
+                            <!-- Descrição / Observações (Opcional) -->
+                            <div class="form-group">
+                                <label for="description" style="font-weight: 600;">Descrição (opcional)</label>
+                                <textarea id="description" name="description" rows="3" placeholder="Informações adicionais ou relevância para o curso..." style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary); resize: vertical; font-family: inherit;"></textarea>
+                            </div>
+
+                            <!-- Upload de Arquivo / Certificado -->
+                            <div class="form-group">
+                                <label style="font-weight: 600;">Certificado / Comprovante <span class="required">*</span></label>
+                                <div class="file-dropzone" id="file-dropzone" style="border: 1.5px dashed #BFDBFE; border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; background: #FAFCFF; position: relative;">
+                                    <input type="file" id="certificate_file" name="file" accept=".pdf,.png,.jpg,.jpeg" required style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                                    
+                                    <div class="dropzone-content" id="dropzone-content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                                        <i data-lucide="upload" style="width: 28px; height: 28px; color: var(--brand-blue);"></i>
+                                        <p style="margin: 0; font-weight: 700; font-size: 0.875rem; color: var(--text-primary);">Clique para selecionar o arquivo</p>
+                                    </div>
+                                    
+                                    <div class="file-preview hidden" id="file-preview" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <i data-lucide="file-check" style="color: var(--brand-blue);"></i>
+                                        <span id="file-name-display" style="font-weight: 600; font-size: 0.875rem; color: var(--text-primary);">arquivo.pdf</span>
+                                        <button type="button" id="btn-remove-file" class="btn-remove-file" title="Remover arquivo" style="background: none; border: none; cursor: pointer; color: var(--error-color);">
+                                            <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- AÇÕES DO FORMULÁRIO (BOTÕES) -->
+                            <div class="login-card" style="padding: 0; background: transparent; box-shadow: none;">
+                                <div class="form-actions" style="display: flex; align-items: center; gap: 12px; margin-top: 8px;">
+                                    <button type="submit" id="btn-submit-request" class="btn btn-primary" style="width: auto; padding: 0.625rem 1.25rem; border-radius: 9999px;">
+                                        <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+                                        <span>Enviar solicitação</span>
+                                    </button>
+                                    
+                                    <a href="dashboard.html" class="btn btn-secondary" style="width: auto; padding: 0.625rem 1.25rem; border-radius: 9999px; text-decoration: none;">Cancelar</a>
+                                </div>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="../../js/pages/nova-solicitacao.js"></script>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

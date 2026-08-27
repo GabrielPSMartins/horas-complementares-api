@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Horas Complementares</title>
+    
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <!-- Ícones e Biblioteca de Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>   
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <!-- TOPO DA SIDEBAR -->
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · FEPI</p>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+                <a href="dashboard.html" class="nav-item active">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="solicitacoes.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span>Minhas Solicitações</span>
+                </a>
+                <a href="nova-solicitacao.html" class="nav-item">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Nova Solicitação</span>
+                </a>
+                <a href="atividades.html" class="nav-item">
+                    <i data-lucide="book-open"></i>
+                    <span>Tipos de Atividades</span>
+                </a>
+            </nav>
+
+            <!-- RODAPÉ DA SIDEBAR -->
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">--</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">Carregando...</h4>
+                        <p id="sidebar-user-role">Aluno</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="app-main">
+            <!-- Header superior (Fixo no topo) -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Dashboard</h1>
+                    <p>Olá, <span id="header-user-firstname">...</span>! Acompanhe seu progresso.</p>
+                </div>
+                <div class="flex-align-center">
+                    <div class="avatar-circle small" id="top-avatar">--</div>
+                    <div>
+                        <div class="stat-label" id="top-user-name">Carregando...</div>
+                        <div class="stat-sub">Aluno</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- ÁREA COM SCROLL (Engloba o conteúdo interno) -->
+            <div class="app-content">
+                <!-- Banner Informativo -->
+                <section class="user-profile-summary">
+                    <div class="user-profile-info">
+                        <div class="avatar-circle large" id="banner-avatar">--</div>
+                        <div>
+                            <h2 id="banner-user-fullname">Carregando dados...</h2>
+                            <p class="hero-description" id="banner-user-info">---</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary btn-inline" id="btn-export">
+                        <i data-lucide="download"></i> Exportar Relatório
+                    </button>
+                </section>
+
+                <!-- KPIs -->
+                <section class="grid-4">
+                    <div class="ui-card">
+                        <div class="flex-between">
+                            <div>
+                                <div class="stat-value" id="hours-required">0h</div>
+                                <div class="stat-label">Exigidas</div>
+                                <div class="stat-sub">total do curso</div>
+                            </div>
+                            <div class="stat-icon-wrapper gray">
+                                <i data-lucide="hash"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="flex-between">
+                            <div>
+                                <div class="stat-value text-approved" id="hours-approved">0h</div>
+                                <div class="stat-label">Aprovadas</div>
+                                <div class="stat-sub" id="hours-approved-percent">0% concluído</div>
+                            </div>
+                            <div class="stat-icon-wrapper green">
+                                <i data-lucide="check-circle-2"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="flex-between">
+                            <div>
+                                <div class="stat-value text-remaining" id="hours-remaining">0h</div>
+                                <div class="stat-label">Restantes</div>
+                                <div class="stat-sub">para concluir</div>
+                            </div>
+                            <div class="stat-icon-wrapper yellow">
+                                <i data-lucide="trending-up"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="flex-between">
+                            <div>
+                                <div class="stat-value text-pending" id="requests-pending-count">0</div>
+                                <div class="stat-label">Pendentes</div>
+                                <div class="stat-sub">aguardando análise</div>
+                            </div>
+                            <div class="stat-icon-wrapper blue">
+                                <i data-lucide="clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Gráfico e Status -->
+                <section class="grid-2">
+                    <div class="ui-card">
+                        <div class="card-header">
+                            <h1>Progresso total</h1>
+                        </div>
+                        
+                        <div class="flex-end-center">
+                            <span class="stat-value text-pending" id="progress-percentage">0%</span>
+                            <span class="stat-sub">
+                                <strong id="hours-current">0h</strong> de <span id="hours-max">0h</span>
+                            </span>
+                        </div>
+
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
+                        </div>
+
+                        <div class="stat-badge-list">
+                            <div class="status-badge badge-pending">
+                                <span>Pendente</span>
+                                <span id="badge-pending-val">0</span>
+                            </div>
+                            <div class="status-badge badge-approved">
+                                <span>Aprovada</span>
+                                <span id="badge-approved-val">0</span>
+                            </div>
+                            <div class="status-badge badge-rejected">
+                                <span>Rejeitada</span>
+                                <span id="badge-rejected-val">0</span>
+                            </div>
+                            <div class="status-badge badge-canceled">
+                                <span>Cancelada</span>
+                                <span id="badge-canceled-val">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="card-header">
+                            <h1>Evolução de horas aprovadas</h1>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="evolutionChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tabela de Solicitações -->
+                <section class="ui-card">
+                    <div class="flex-between-center">
+                        <div class="card-header">
+                            <h1>Solicitações recentes</h1>
+                        </div>
+                        <a href="solicitacoes.html" class="forgot-password">Ver todas &rsaquo;</a>
+                    </div>
+
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Título / Descrição</th>
+                                <th>Categoria</th>
+                                <th>Horas</th>
+                                <th>Data</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-requests-table">
+                            <!-- Preenchido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </section>
+            </div><!-- /.app-content -->
+        </main>
+    </div>
+
+    <script type="module" src="../../js/pages/dashboards.js"></script>
+
+    <!-- INICIALIZAÇÃO DOS ÍCONES LUCIDE -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

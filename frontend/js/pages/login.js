@@ -1,4 +1,4 @@
-import { loginUser, getRoleFromToken, validateUserRole, saveAuthSession } from './auth.js'; 
+import { loginUser, getRoleFromToken, validateUserRole, saveAuthSession } from '../auth.js'; 
 
 const loginForm = document.getElementById('loginForm');
 const msgErro = document.getElementById('msg-erro');
