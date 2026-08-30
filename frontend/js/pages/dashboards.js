@@ -35,14 +35,17 @@ async function carregarDadosDashboard() {
 
         // 2. Preenche a tabela de solicitações recentes
         if (requests) {
-            preencherTabelaSolicitacoes(requests);
+            // Garante o tratamento de array caso o backend retorne envelopado em .data
+            const listaSolicitacoes = Array.isArray(requests) 
+                ? requests 
+                : (requests.data || requests.items || requests.solicitacoes || []);
+                
+            preencherTabelaSolicitacoes(listaSolicitacoes);
         }
 
     } catch (error) {
         if (error.message === 'UNAUTHORIZED') {
             window.location.href = '../../index.html';
-        } else {
-            console.error('Erro ao carregar dados do Dashboard:', error);
         }
     }
 }
@@ -105,37 +108,64 @@ function preencherTabelaSolicitacoes(requests) {
     if (!tabelaBody || !Array.isArray(requests)) return;
 
     if (requests.length === 0) {
-        tabelaBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px;">Nenhuma solicitação encontrada.</td></tr>`;
+        tabelaBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted);">Nenhuma solicitação encontrada.</td></tr>`;
         return;
     }
 
-    const recentes = requests.slice(0, 5);
+    // Ordena as solicitações da mais recente para a mais antiga
+    const listaOrdenada = [...requests].sort((a, b) => {
+        const dataA = new Date(a.createdAt || a.created_at || a.submission_date || 0);
+        const dataB = new Date(b.createdAt || b.created_at || b.submission_date || 0);
+        return dataB - dataA;
+    });
+
+    // Filtra apenas as 5 últimas solicitações
+    const recentes = listaOrdenada.slice(0, 5);
+
+    const statusMap = {
+        'PENDING': { text: 'Pendente', badgeClass: 'badge-pending' },
+        'IN_REVIEW': { text: 'Em Análise', badgeClass: 'badge-in-review' },
+        'APPROVED': { text: 'Aprovada', badgeClass: 'badge-approved' },
+        'REJECTED': { text: 'Rejeitada', badgeClass: 'badge-rejected' },
+        'CANCELED': { text: 'Cancelada', badgeClass: 'badge-canceled' }
+    };
 
     tabelaBody.innerHTML = recentes.map(item => {
-        const dataRaw = item.created_at || item.createdAt;
-        const dataFormatada = dataRaw ? new Date(dataRaw).toLocaleDateString('pt-BR') : '---';
-        const rawStatus = (item.status || 'PENDING').toLowerCase();
-        
-        // Tradução do Status para Exibição
-        const statusMap = {
-            'pending': { text: 'Pendente', class: 'pending' },
-            'approved': { text: 'Aprovado', class: 'approved' },
-            'rejected': { text: 'Rejeitado', class: 'rejected' },
-            'canceled': { text: 'Cancelado', class: 'canceled' }
-        };
+        const id = item.id || item._id;
+        const dataRaw = item.createdAt || item.created_at || item.submission_date;
+        const dataFormatada = dataRaw 
+            ? new Date(dataRaw).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
+            : '---';
 
-        const statusInfo = statusMap[rawStatus] || { text: rawStatus.toUpperCase(), class: rawStatus };
+        const rawStatus = (item.status || 'PENDING').toUpperCase();
+        const statusInfo = statusMap[rawStatus] || { text: rawStatus, badgeClass: 'badge-pending' };
+
+        const titulo = item.title || item.titulo || item.description || item.descricao || 'Solicitação de Horas';
+        const categoria = item.activity_type_name || item.activity_type?.name || item.category || 'Geral';
+        const horas = item.hours || item.requested_hours || item.horas || 0;
 
         return `
-            <tr>
-                <td><strong>${item.title || item.description || 'Sem título'}</strong></td>
-                <td>${item.activity_type_name || item.category || 'Geral'}</td>
-                <td>${item.hours || item.requested_hours || 0}h</td>
-                <td>${dataFormatada}</td>
-                <td><span class="status-badge badge-${statusInfo.class}">${statusInfo.text}</span></td>
+            <tr style="cursor: pointer;" onclick="window.location.href='detalhes-solicitacao.html?id=${id}'">
+                <td>
+                    <strong style="color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 250px; display: block;">
+                        ${titulo}
+                    </strong>
+                </td>
+                <td style="color: var(--text-secondary);">${categoria}</td>
+                <td style="font-weight: 600; color: var(--text-primary);">${horas}h</td>
+                <td style="color: var(--text-secondary);">${dataFormatada}</td>
+                <td>
+                    <span class="status-badge ${statusInfo.badgeClass}">
+                        ${statusInfo.text}
+                    </span>
+                </td>
             </tr>
         `;
     }).join('');
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 }
 
 // --- GRÁFICO POR TIPO DE ATIVIDADE ---

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minhas Solicitações - Horas Complementares</title>
+    
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>   
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · FEPI</p>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="solicitacoes.html" class="nav-item active">
+                    <i data-lucide="file-text"></i>
+                    <span>Minhas Solicitações</span>
+                </a>
+                <a href="nova-solicitacao.html" class="nav-item">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Nova Solicitação</span>
+                </a>
+                <a href="atividades.html" class="nav-item">
+                    <i data-lucide="book-open"></i>
+                    <span>Tipos de Atividades</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">--</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">Carregando...</h4>
+                        <p id="sidebar-user-role">Aluno</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="app-main">
+            <!-- Header superior original restaurado -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Minhas Solicitações</h1>
+                    <p id="total-solicitacoes-count">0 solicitação(ões) registrada(s)</p>
+                </div>
+                <div class="flex-align-center">
+                    <div class="avatar-circle small" id="top-avatar">--</div>
+                    <div>
+                        <div class="stat-label" id="top-user-name">Carregando...</div>
+                        <div class="stat-sub" id="top-user-role">Aluno</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Área do Conteúdo da Tabela e Filtros -->
+            <div class="app-content">
+                <!-- Barra de Ações (Filtros próximos da tabela) -->
+                <div class="actions-bar flex-between-center" style="margin-bottom: 2px; flex-wrap: wrap; gap: 16px;">
+                    <div class="filter-wrapper flex-align-center" style="gap: 12px; flex-wrap: wrap;">
+                        <i data-lucide="filter" class="icon-filter"></i>
+                        
+                        <!-- 1. Filtro por Status -->
+                        <div class="form-group" style="margin: 0;">
+                            <select id="select-status-filter" style="border-radius: 20px; padding: 8px 16px; background-color: white; border: 1px solid var(--border-color, #e2e8f0);">
+                                <option value="ALL">Todos os status</option>
+                                <option value="PENDING">Pendentes</option>
+                                <option value="IN_REVIEW">Em Análise</option>
+                                <option value="APPROVED">Aprovadas</option>
+                                <option value="REJECTED">Rejeitadas</option>
+                                <option value="CANCELED">Canceladas</option>
+                            </select>
+                        </div>
+
+                        <!-- 2. Filtro por Tipo de Atividade -->
+                        <div class="form-group" style="margin: 0;">
+                            <select id="select-activity-type-filter" style="border-radius: 20px; padding: 8px 16px; background-color: white; border: 1px solid var(--border-color, #e2e8f0);">
+                                <option value="">Todos os tipos</option>
+                            </select>
+                        </div>
+
+                        <!-- 3. Filtros por Intervalo de Datas -->
+                        <div class="flex-align-center" style="gap: 6px;">
+                            <input type="date" id="input-start-date" title="Data Inicial" style="border-radius: 20px; padding: 7px 12px; background-color: white; border: 1px solid var(--border-color, #e2e8f0); color: var(--text-secondary); font-size: 13px;" />
+                            <span style="color: var(--text-secondary); font-weight: 600;">-</span>
+                            <input type="date" id="input-end-date" title="Data Final" style="border-radius: 20px; padding: 7px 12px; background-color: white; border: 1px solid var(--border-color, #e2e8f0); color: var(--text-secondary); font-size: 13px;" />
+                        </div>
+
+                        <!-- 4. Botão para Limpar Filtros -->
+                        <button id="btn-limpar-filtros" style="background: none; border: none; color: var(--primary-blue); font-weight: 600; cursor: pointer; padding: 6px 8px; font-size: 13px;">
+                            Limpar Filtros
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de Solicitações -->
+                <div class="ui-card table-card" style="padding: 0 20px 8px 20px;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th style="padding-top: 8px; padding-bottom: 8px; font-size: 12px;">TIPO DE ATIVIDADE</th>
+                                <th style="padding-top: 8px; padding-bottom: 8px; font-size: 12px;">DESCRIÇÃO</th>
+                                <th style="padding-top: 8px; padding-bottom: 8px; font-size: 12px;">DATA DE ENVIO</th>
+                                <th style="padding-top: 8px; padding-bottom: 8px; font-size: 12px;">HORAS</th>
+                                <th style="padding-top: 8px; padding-bottom: 8px; font-size: 12px;">STATUS</th>
+                                <th style="padding-top: 8px; padding-bottom: 8px; font-size: 12px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-solicitacoes-body">
+                            <tr>
+                                <td colspan="6" class="table-loading" style="padding: 12px;">
+                                    Carregando solicitações...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Controles de Paginação -->
+                    <div id="pagination-container" class="actions-bar flex-between-center" style="padding: 8px 0 0 0; border-top: 1px solid var(--border-color, #e2e8f0); margin-top: 4px;">
+                        <span id="pagination-info" class="stat-label" style="font-weight: 600; color: var(--text-secondary); font-size: 12px;">
+                            0 solicitação(ões) · Pág. 1/1
+                        </span>
+                        <div class="flex-align-center" style="gap: 8px;">
+                            <button id="btn-prev-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px;" disabled>
+                                &larr; Ant.
+                            </button>
+                            <button id="btn-next-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px;" disabled>
+                                Próx. &rarr;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Importação do módulo JS principal da página -->
+    <script type="module" src="../../js/pages/solicitacoes.js"></script>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

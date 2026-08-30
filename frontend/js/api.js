@@ -33,9 +33,13 @@ export async function obterRelatorioAluno() {
     return await response.json();
 }
 
-// Busca as solicitações do aluno (/activity-requests/me)
-export async function obterMinhasSolicitacoes() {
-    const response = await fetch(`${API_BASE_URL}/activity-requests/me`, {
+// Busca as solicitações do aluno (/activity-requests/me) aceitando filtros
+export async function obterMinhasSolicitacoes(params = {}) {
+    // Converte o objeto { status: 'PENDING', activity_type_id: 1 } para "?status=PENDING&activity_type_id=1"
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = `${API_BASE_URL}/activity-requests/me${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(endpoint, {
         headers: getHeaders()
     });
 
@@ -49,7 +53,6 @@ export async function obterMinhasSolicitacoes() {
 
     return await response.json();
 }
-
 // Busca a lista de tipos de atividades (/activity-types)
 export async function obterTiposAtividades() {
     const response = await fetch(`${API_BASE_URL}/activity-types`, {

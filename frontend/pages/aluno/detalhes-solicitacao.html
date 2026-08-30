@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da Solicitação - Horas Complementares</title>
+    
+    <!-- CSS Globais -->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · FEPI</p>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="solicitacoes.html" class="nav-item active">
+                    <i data-lucide="file-text"></i>
+                    <span>Minhas Solicitações</span>
+                </a>
+                <a href="nova-solicitacao.html" class="nav-item">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Nova Solicitação</span>
+                </a>
+                <a href="atividades.html" class="nav-item">
+                    <i data-lucide="book-open"></i>
+                    <span>Tipos de Atividades</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">--</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">Carregando...</h4>
+                        <p id="sidebar-user-role">Aluno</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="app-main">
+            <div class="app-content">
+                
+                <!-- Botão Voltar -->
+                <div style="margin-bottom: 16px;">
+                    <a href="solicitacoes.html" class="flex-align-center" style="color: var(--text-secondary); font-weight: 600; font-size: 14px; text-decoration: none;">
+                        <i data-lucide="chevron-left"></i>
+                        <span>Voltar às solicitações</span>
+                    </a>
+                </div>
+
+                <!-- Card de Detalhes Principal -->
+                <div class="ui-card" style="margin-bottom: 20px;">
+                    
+                    <!-- Cabeçalho com Título e Badge alinhados na mesma altura -->
+                    <div class="card-header" style="margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;">
+                            <div>
+                                <h1 id="detalhe-titulo" style="font-size: 22px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">Carregando...</h1>
+                                <p id="detalhe-data-envio" style="color: var(--text-secondary); font-size: 13px; margin: 0;">--</p>
+                            </div>
+
+                            <span class="status-badge" id="detalhe-status-badge">
+                                <span id="detalhe-status-texto">--</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Campos do Formulário em Grid -->
+                    <div class="grid-2" style="gap: 20px; margin-bottom: 20px;">
+                        <div style="grid-column: span 2;">
+                            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--brand-blue); text-transform: uppercase; margin-bottom: 4px;">DESCRIÇÃO</label>
+                            <p id="detalhe-descricao" style="font-size: 15px; color: var(--text-primary); font-weight: 500;">--</p>
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--brand-blue); text-transform: uppercase; margin-bottom: 4px;">DATA DA ATIVIDADE</label>
+                            <p id="detalhe-data-atividade" style="font-size: 15px; color: var(--text-primary); font-weight: 500;">--</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--brand-blue); text-transform: uppercase; margin-bottom: 4px;">HORAS SOLICITADAS</label>
+                            <p id="detalhe-horas-solicitadas" class="stat-value" style="font-size: 24px;">--</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--brand-blue); text-transform: uppercase; margin-bottom: 4px;">HORAS APROVADAS</label>
+                            <p id="detalhe-horas-aprovadas" class="stat-value" style="font-size: 24px;">--</p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 700; color: var(--brand-blue); text-transform: uppercase; margin-bottom: 4px;">ANALISADO POR</label>
+                            <p id="detalhe-analisado-por" style="font-size: 15px; color: var(--text-primary); font-weight: 500;">--</p>
+                        </div>
+                    </div>
+
+                    <!-- Caixa de Observações -->
+                    <div style="background-color: var(--bg-blue-light); border-radius: 12px; padding: 16px; margin-top: 20px;">
+                        <label style="display: block; font-size: 11px; font-weight: 700; color: var(--brand-blue); text-transform: uppercase; margin-bottom: 4px;">OBSERVAÇÕES DO AVALIADOR</label>
+                        <p id="detalhe-observacoes" style="font-size: 14px; color: var(--text-primary); margin: 0;">--</p>
+                    </div>
+
+                    <!-- Caixa de Anexo -->
+                    <div class="flex-between-center" style="background-color: #F8FAFC; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 20px; margin-top: 16px;">
+                        <div class="flex-align-center" style="gap: 12px;">
+                            <div class="stat-icon-wrapper gray">
+                                <i data-lucide="file-text"></i>
+                            </div>
+                            <div>
+                                <strong id="anexo-nome" style="display: block; font-size: 14px; color: var(--text-primary);">Verificando anexo...</strong>
+                                <span id="anexo-subtexto" style="font-size: 12px; color: var(--text-muted);">Comprovante anexado</span>
+                            </div>
+                        </div>
+                        <a href="#" id="btn-download-anexo" target="_blank" class="btn-export" style="display: none; text-decoration: none;">
+                            <i data-lucide="download"></i>
+                            <span>Baixar</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Histórico / Timeline -->
+                <div class="ui-card">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px;">Histórico</h3>
+                    
+                    <div id="detalhe-timeline" style="position: relative; padding-left: 24px;">
+                        <div style="position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background-color: var(--border-color);"></div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts de execução -->
+    <script type="module" src="../../js/pages/detalhes-solicitacao.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

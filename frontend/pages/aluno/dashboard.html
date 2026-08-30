@@ -205,7 +205,7 @@
                     </div>
                 </section>
 
-                <!-- Tabela de Solicitações -->
+                <!-- Tabela de Solicitações Recentes -->
                 <section class="ui-card">
                     <div class="flex-between-center">
                         <div class="card-header">
@@ -225,7 +225,11 @@
                             </tr>
                         </thead>
                         <tbody id="recent-requests-table">
-                            <!-- Preenchido dinamicamente via JS -->
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 16px;">
+                                    Carregando solicitações...
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </section>
@@ -233,6 +237,7 @@
         </main>
     </div>
 
+    <!-- SCRIPT DA PÁGINA DO DASHBOARD -->
     <script type="module" src="../../js/pages/dashboards.js"></script>
 
     <!-- INICIALIZAÇÃO DOS ÍCONES LUCIDE -->
