@@ -41,7 +41,7 @@ class StudentRegistrationService:
         )
 
         clean_cpf = self._only_digits(cpf)
-        initial_password = f"FEPI{clean_cpf}"
+        initial_password = f"FEPI*{clean_cpf}"
 
         user = User(
             email=email,
