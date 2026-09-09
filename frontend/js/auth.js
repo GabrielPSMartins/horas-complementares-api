@@ -57,3 +57,43 @@ export function saveAuthSession(token, role) {
   localStorage.setItem('user_type', role);
 }
  
+export function protegerRota() {
+  const token = localStorage.getItem('access_token');
+  if (!token) {
+    // ALTERAÇÃO 1: Evita redirecionar se o usuário já estiver na página de login/raiz
+    const pathAtual = window.location.pathname;
+    if (pathAtual.endsWith('index.html') || pathAtual === '/' || pathAtual.endsWith('/frontend/')) {
+      return;
+    }
+
+    // Se não tiver token, manda de volta para a tela de login
+    window.location.replace('../../index.html');
+  }
+}
+
+export function logout() {
+  localStorage.clear();
+  window.location.replace('../../index.html');
+}
+
+// ALTERAÇÃO 2: Bloqueia navegação por cache no botão "Voltar" APENAS se NÃO estiver no index.html
+window.addEventListener('pageshow', () => {
+  const token = localStorage.getItem('access_token');
+  const pathAtual = window.location.pathname;
+  const isIndex = pathAtual.endsWith('index.html') || pathAtual === '/' || pathAtual.endsWith('/frontend/');
+
+  if (!token && !isIndex) {
+    protegerRota();
+  }
+});
+
+// Evento automático nos botões de sair
+document.addEventListener('DOMContentLoaded', () => {
+  const botoesLogout = document.querySelectorAll('#btn-logout, .btn-logout');
+  botoesLogout.forEach(botao => {
+    botao.addEventListener('click', (e) => {
+      e.preventDefault();
+      logout();
+    });
+  });
+});
