@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tipos de Atividades - Horas Complementares</title>
+    
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>   
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · FEPI</p>
+                </div>
+            </div>
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+                <a href="dashboard.html" class="nav-item">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="solicitacoes.html" class="nav-item">
+                    <i data-lucide="file-text"></i>
+                    <span>Minhas Solicitações</span>
+                </a>
+                <a href="nova-solicitacao.html" class="nav-item">
+                    <i data-lucide="plus-circle"></i>
+                    <span>Nova Solicitação</span>
+                </a>
+                <a href="tipos-de-atividades.html" class="nav-item active">
+                    <i data-lucide="book-open"></i>
+                    <span>Tipos de Atividades</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">--</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">Carregando...</h4>
+                        <p id="sidebar-user-role">Aluno</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="app-main">
+            <!-- Header superior -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Tipos de Atividades</h1>
+                    <p>Análise os tipos de atividades disponíveis para registro.</p>
+                </div>
+                <div class="flex-align-center">
+                    <div class="avatar-circle small" id="top-avatar">--</div>
+                    <div>
+                        <div class="stat-label" id="top-user-name">Carregando...</div>
+                        <div class="stat-sub" id="top-user-role">Aluno</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Conteúdo da página -->
+            <div class="app-content">
+
+                <!-- Barra de Pesquisa e Filtros por Categoria -->
+                <div class="flex-between-center mb-4" style="gap: 12px; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 1; min-width: 240px; margin-bottom: 0;">
+                        <input type="text" id="input-search" placeholder="Buscar atividade..." style="border-radius: 9999px; padding-left: 1rem;">
+                    </div>
+                    
+                    <div class="flex-align-center" style="gap: 8px; flex-wrap: wrap;">
+                        <button class="status-badge badge-pending" data-filter="all" style="cursor: pointer; padding: 8px 16px;">Todas</button>
+                        <button class="status-badge badge-ensino" data-filter="Ensino" style="cursor: pointer; padding: 8px 16px;">Ensino</button>
+                        <button class="status-badge badge-pesquisa" data-filter="Pesquisa" style="cursor: pointer; padding: 8px 16px;">Pesquisa</button>
+                        <button class="status-badge badge-extensao" data-filter="Extensão" style="cursor: pointer; padding: 8px 16px;">Extensão</button>
+                        <button class="status-badge badge-eventos" data-filter="Eventos" style="cursor: pointer; padding: 8px 16px;">Eventos</button>
+                        <button class="status-badge badge-formacao" data-filter="Formação" style="cursor: pointer; padding: 8px 16px;">Formação</button>
+                        <button class="status-badge badge-profissional" data-filter="Profissional" style="cursor: pointer; padding: 8px 16px;">Profissional</button>
+                    </div>
+                </div>
+
+                <!-- Grid de Atividades -->
+                <div class="grid-2" id="activities-grid">
+
+                    <!-- 1. Congresso -->
+                    <div class="ui-card activity-card" data-category="Eventos">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-eventos">Eventos</span>
+                            <span class="status-badge badge-horas">Máx. 30h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Congresso</div>
+                            <p class="stat-sub">Participação ou apresentação de trabalhos em congressos e simpósios acadêmicos.</p>
+                        </div>
+                    </div>
+
+                    <!-- 2. Curso -->
+                    <div class="ui-card activity-card" data-category="Formação">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-formacao">Formação</span>
+                            <span class="status-badge badge-horas">Máx. 40h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Curso</div>
+                            <p class="stat-sub">Cursos livres, certificações técnicas e treinamentos de capacitação extracurricular.</p>
+                        </div>
+                    </div>
+
+                    <!-- 3. Estágio Não Obrigatório -->
+                    <div class="ui-card activity-card" data-category="Profissional">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-profissional">Profissional</span>
+                            <span class="status-badge badge-horas">Máx. 80h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Estágio Não Obrigatório</div>
+                            <p class="stat-sub">Experiência prática profissional em empresas da área de Tecnologia da Informação.</p>
+                        </div>
+                    </div>
+
+                    <!-- 4. Evento Acadêmico -->
+                    <div class="ui-card activity-card" data-category="Eventos">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-eventos">Eventos</span>
+                            <span class="status-badge badge-horas">Máx. 20h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Evento Acadêmico</div>
+                            <p class="stat-sub">Participação em semanas acadêmicas, feiras de conhecimento e encontros de estudantes.</p>
+                        </div>
+                    </div>
+
+                    <!-- 5. Iniciação Científica -->
+                    <div class="ui-card activity-card" data-category="Pesquisa">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-pesquisa">Pesquisa</span>
+                            <span class="status-badge badge-horas">Máx. 80h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Iniciação Científica</div>
+                            <p class="stat-sub">Projetos de pesquisa científica desenvolvidos sob orientação docente oficial.</p>
+                        </div>
+                    </div>
+
+                    <!-- 6. Monitoria -->
+                    <div class="ui-card activity-card" data-category="Ensino">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-ensino">Ensino</span>
+                            <span class="status-badge badge-horas">Máx. 60h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Monitoria</div>
+                            <p class="stat-sub">Auxílio docente em disciplinas do curso como monitor oficial.</p>
+                        </div>
+                    </div>
+
+                    <!-- 7. Palestra -->
+                    <div class="ui-card activity-card" data-category="Eventos">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-eventos">Eventos</span>
+                            <span class="status-badge badge-horas">Máx. 15h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Palestra</div>
+                            <p class="stat-sub">Presença em palestras, painéis e webinars sobre temas acadêmicos e profissionais.</p>
+                        </div>
+                    </div>
+
+                    <!-- 8. Projeto de Extensão -->
+                    <div class="ui-card activity-card" data-category="Extensão">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-extensao">Extensão</span>
+                            <span class="status-badge badge-horas">Máx. 60h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Projeto de Extensão</div>
+                            <p class="stat-sub">Projetos com foco em ações sociais, comunitárias e aplicação do conhecimento científico.</p>
+                        </div>
+                    </div>
+
+                    <!-- 9. Publicação Acadêmica -->
+                    <div class="ui-card activity-card" data-category="Pesquisa">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-pesquisa">Pesquisa</span>
+                            <span class="status-badge badge-horas">Máx. 40h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Publicação Acadêmica</div>
+                            <p class="stat-sub">Autoria ou coautoria de artigos e trabalhos publicados em anais de congressos e periódicos.</p>
+                        </div>
+                    </div>
+
+                    <!-- 10. Seminário -->
+                    <div class="ui-card activity-card" data-category="Eventos">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-eventos">Eventos</span>
+                            <span class="status-badge badge-horas">Máx. 20h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Seminário</div>
+                            <p class="stat-sub">Participação ativa em discussões temáticas e rodadas de conversa acadêmicas.</p>
+                        </div>
+                    </div>
+
+                    <!-- 11. Visita Técnica -->
+                    <div class="ui-card activity-card" data-category="Profissional">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-profissional">Profissional</span>
+                            <span class="status-badge badge-horas">Máx. 15h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Visita Técnica</div>
+                            <p class="stat-sub">Visitas guiadas a empresas, centros de tecnologia e ecossistemas de inovação.</p>
+                        </div>
+                    </div>
+
+                    <!-- 12. Workshop -->
+                    <div class="ui-card activity-card" data-category="Formação">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-formacao">Formação</span>
+                            <span class="status-badge badge-horas">Máx. 25h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Workshop</div>
+                            <p class="stat-sub">Treinamentos práticos de curta duração voltados para o aprendizado de ferramentas.</p>
+                        </div>
+                    </div>
+
+                    <!-- 13. Outro (Posicionado por último) -->
+                    <div class="ui-card activity-card" data-category="Outros">
+                        <div class="flex-between-center">
+                            <span class="status-badge badge-outros">Outros</span>
+                            <span class="status-badge badge-horas">Máx. 20h</span>
+                        </div>
+                        <div class="card-header">
+                            <div class="stat-label">Outro</div>
+                            <p class="stat-sub">Atividades complementares não especificadas nas demais categorias regulamentadas.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script principal de lógica de página -->
+    <script type="module" src="../../js/pages/tipos-de-atividades.js"></script>
+
+    <!-- Script de Ícones Lucide -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

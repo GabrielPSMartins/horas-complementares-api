@@ -1,4 +1,3 @@
-// js/pages/solicitacoes.js
 import { protegerRota } from '../auth.js';
 import { obterMinhasSolicitacoes, obterTiposAtividades } from '../api.js';
 import { carregarDadosPerfil } from '../utils/userprofile.js';
@@ -16,7 +15,7 @@ const queryParams = {
     start_date: null,
     end_date: null,
     page: 1,
-    page_size: 4 // Limite de 4 itens por página
+    page_size: 5 // Limite de 5 itens por página
 };
 
 // Guarda o número total de solicitações retornadas para calcular páginas

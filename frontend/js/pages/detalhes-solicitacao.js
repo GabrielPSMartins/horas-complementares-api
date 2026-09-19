@@ -1,4 +1,3 @@
-// js/pages/detalhes-solicitacao.js
 import { protegerRota } from '../auth.js';
 import { obterMinhasSolicitacoes, obterTiposAtividades } from '../api.js';
 import { carregarDadosPerfil } from '../utils/userprofile.js';
