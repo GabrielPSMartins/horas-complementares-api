@@ -51,6 +51,12 @@ class User(Base):
         uselist=False,
     )
 
+    coordinator_profile = relationship(
+        "Coordinator",
+        back_populates="user",
+        uselist=False,
+    )
+
     coordinated_courses = relationship(
         "Course",
         back_populates="coordinator",

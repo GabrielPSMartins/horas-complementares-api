@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class StudentCreateRequest(BaseModel):
@@ -9,6 +9,7 @@ class StudentCreateRequest(BaseModel):
     email: EmailStr
     cpf: str
     registration_number: str
+    current_semester: int = Field(ge=1, le=8)
     enrollment_date: date
     expected_graduation_date: date | None = None
     course_id: uuid.UUID | None = None
@@ -20,6 +21,7 @@ class StudentCreateResponse(BaseModel):
     email: str
     cpf: str
     registration_number: str
+    current_semester: int
     username: str
     course_id: uuid.UUID
     enrollment_date: date
