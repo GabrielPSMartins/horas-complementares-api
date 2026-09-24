@@ -420,13 +420,7 @@
     transition: width 0.4s ease;
 }
 
-/* Badges de Status (Sistema Geral) */
-.app-layout .stat-badge-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-}
-
+/* Badges de Status Genericos (Ex: Tabelas, Outras Telas) */
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -443,6 +437,55 @@
 .app-layout .badge-approved { background-color: #D1FAE5; color: #059669; border-color: #A7F3D0; }
 .app-layout .badge-rejected { background-color: #FEE2E2; color: #EF4444; border-color: #FECDD3; }
 .app-layout .badge-canceled { background-color: #F3F4F6; color: #4B5563; border-color: #E5E7EB; }
+
+/* --- SEÇÃO ESPECÍFICA DO PAINEL DE PROGRESSO (2x2) --- */
+.app-layout .stat-badge-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+/* Sobrescreve apenas os badges que estão dentro de .stat-badge-list */
+.app-layout .stat-badge-list .status-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-radius: 9999px;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.app-layout .stat-badge-list .status-badge span:last-child {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+/* Cores do painel 2x2 correspondentes à imagem */
+.app-layout .stat-badge-list .badge-pending { 
+    background-color: #FFFDF0; 
+    color: #B76E00; 
+    border-color: #FFE58F; 
+}
+
+.app-layout .stat-badge-list .badge-approved { 
+    background-color: #F6FFED; 
+    color: #135200; 
+    border-color: #B7EB8F; 
+}
+
+.app-layout .stat-badge-list .badge-rejected { 
+    background-color: #FFF1F0; 
+    color: #CF1322; 
+    border-color: #FFA39E; 
+}
+
+.app-layout .stat-badge-list .badge-canceled { 
+    background-color: #F8F9FA; 
+    color: #434343; 
+    border-color: #ADC6FF; 
+}
 
 /* Badges Específicos por Categoria de Atividade */
 .badge-eventos {
