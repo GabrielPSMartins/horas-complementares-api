@@ -92,3 +92,32 @@ export async function criarSolicitacao(formData) {
     return await response.json();
 }
 
+// Busca os dados do dashboard do coordenador (inclui resumo e alunos)
+export async function obterDashboardCoordenador(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = `${API_BASE_URL}/coordinator/dashboard${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(endpoint, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
+
+    return await response.json();
+}
+
+// Busca solicitações pendentes (/activity-requests/coordinator)
+export async function obterSolicitacoesCoordenador(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    const endpoint = `${API_BASE_URL}/activity-requests/coordinator${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(endpoint, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
+
+    return await response.json();
+}

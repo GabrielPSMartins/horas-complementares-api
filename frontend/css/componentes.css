@@ -565,3 +565,59 @@
     height: 180px;
     width: 100%;
 }
+
+/* --- ESTILIZAÇÃO AVANÇADA DE BOTÕES --- */
+
+/* Botões da barra de filtro de Semestre */
+.btn-semester {
+    background-color: #F1F5F9;
+    color: var(--text-secondary, #64748b);
+    border: 1px solid var(--border-color, #e2e8f0);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.btn-semester:hover {
+    background-color: #E2E8F0;
+    color: var(--text-primary, #0f172a);
+}
+
+.btn-semester.active {
+    background-color: var(--brand-blue, #2563eb);
+    color: #FFFFFF;
+    border-color: var(--brand-blue, #2563eb);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+/* Botão "Analisar" da lista de pendências */
+.btn-analys {
+    background-color: var(--primary-hover, #1d4ed8);
+    color: #FFFFFF;
+    border: none;
+    padding: 8px 22px;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.btn-analys:hover {
+    background-color: var(--brand-blue, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+}
+
+.btn-analys:active {
+    transform: translateY(0);
+}
