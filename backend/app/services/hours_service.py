@@ -70,7 +70,7 @@ class HoursService:
     ) -> dict:
         total_approved = self.get_total_approved_hours(student_id)
         limit = course.total_required_hours + course.max_extra_hours
-        remaining = max(limit - total_approved, 0)
+        remaining = max(course.total_required_hours - total_approved, 0)
         progress_percentage = (
             round(min(total_approved / course.total_required_hours, 1.0) * 100, 2)
             if course.total_required_hours > 0
