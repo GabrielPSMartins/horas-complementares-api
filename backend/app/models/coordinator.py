@@ -26,6 +26,7 @@ class Coordinator(Base):
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     cpf: Mapped[str] = mapped_column(String(14), unique=True, nullable=False)
+    registration_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
