@@ -97,6 +97,12 @@ def list_coordinator_activity_requests(
         default=None,
         description="Busca por nome ou matrícula do aluno",
     ),
+    semester: int | None = Query(
+        default=None,
+        ge=1,
+        le=8,
+        description="Filtra solicitações por semestre atual do aluno",
+    ),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
     current_user: User = Depends(get_current_user),
@@ -127,6 +133,7 @@ def list_coordinator_activity_requests(
         start_date=start_date,
         end_date=end_date,
         search=search,
+        semester=semester,
         page=page,
         page_size=page_size,
     )
@@ -136,6 +143,7 @@ def list_coordinator_activity_requests(
             **ActivityRequestResponse.model_validate(item).model_dump(),
             student_name=item.student.name,
             student_registration_number=item.student.registration_number,
+            student_semester=item.student.current_semester,
         )
         for item in items
     ]
