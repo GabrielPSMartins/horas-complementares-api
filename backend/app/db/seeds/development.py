@@ -13,7 +13,7 @@ from app.models.user import User, UserRole
 from config.settings import settings
 
 
-def build_initial_student_password(cpf: str) -> str:
+def build_initial_password(cpf: str) -> str:
     normalized_cpf = "".join(char for char in cpf if char.isdigit())
     return f"FEPI*{normalized_cpf}"
 
@@ -55,6 +55,7 @@ def get_or_create_coordinator(
     user_id,
     name: str,
     cpf: str,
+    registration_number: str,
 ) -> Coordinator:
     existing_coordinator = db.scalar(
         select(Coordinator).where(Coordinator.user_id == user_id)
@@ -67,6 +68,7 @@ def get_or_create_coordinator(
         user_id=user_id,
         name=name,
         cpf=cpf,
+        registration_number=registration_number,
         is_active=True,
     )
 
@@ -182,11 +184,6 @@ def seed_development_data() -> None:
     if not settings.default_root_password:
         raise RuntimeError("DEFAULT_ROOT_PASSWORD precisa ser configurada no .env.")
 
-    if not settings.default_coordinator_password:
-        raise RuntimeError(
-            "DEFAULT_COORDINATOR_PASSWORD precisa ser configurada no .env."
-        )
-
     db = SessionLocal()
 
     try:
@@ -199,11 +196,14 @@ def seed_development_data() -> None:
             must_change_password=True,
         )
 
+        coordinator_cpf = "11111111111"
+        coordinator_registration_number = "00000001"
+
         coordinator_user = get_or_create_user(
             db,
             email="coordenador.si@fepi.edu.br",
-            username="coordenador.si",
-            password=settings.default_coordinator_password,
+            username=coordinator_registration_number,
+            password=build_initial_password(coordinator_cpf),
             role=UserRole.COORDINATOR,
             must_change_password=True,
         )
@@ -212,7 +212,8 @@ def seed_development_data() -> None:
             db,
             user_id=coordinator_user.id,
             name="Coordenador Sistemas de Informação",
-            cpf="11111111111",
+            cpf=coordinator_cpf,
+            registration_number=coordinator_registration_number,
         )
 
         course = get_or_create_course(
@@ -229,7 +230,7 @@ def seed_development_data() -> None:
             db,
             email="aluno.teste@fepi.edu.br",
             username=student_registration_number,
-            password=build_initial_student_password(student_cpf),
+            password=build_initial_password(student_cpf),
             role=UserRole.STUDENT,
             must_change_password=True,
         )
