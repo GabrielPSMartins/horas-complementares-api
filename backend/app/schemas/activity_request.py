@@ -43,3 +43,4 @@ class ActivityRequestCoordinatorResponse(ActivityRequestResponse):
 
     student_name: str
     student_registration_number: str
+    student_semester: int

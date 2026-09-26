@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,6 +14,12 @@ router = APIRouter(prefix="/coordinator", tags=["coordinator"])
 
 @router.get("/dashboard", response_model=CoordinatorDashboardResponse)
 def get_coordinator_dashboard(
+    semester: int | None = Query(
+        default=None,
+        ge=1,
+        le=8,
+        description="Filtra o dashboard por semestre dos alunos",
+    ),
     current_user: User = Depends(require_roles(UserRole.COORDINATOR)),
     db: Session = Depends(get_db),
 ) -> CoordinatorDashboardResponse:
@@ -28,6 +34,6 @@ def get_coordinator_dashboard(
         )
 
     hours_service = HoursService(db)
-    summary = hours_service.get_course_requests_summary(course.id)
+    summary = hours_service.get_course_requests_summary(course.id, semester=semester)
 
     return CoordinatorDashboardResponse(**summary)
