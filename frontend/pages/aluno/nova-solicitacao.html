@@ -107,7 +107,7 @@
                             <!-- Tipo de Atividade -->
                             <div class="form-group">
                                 <label for="activity_type_id" style="font-weight: 600;">Tipo de atividade <span class="required">*</span></label>
-                                <select id="activity_type_id" name="activity_type_id" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                <select id="activity_type_id" name="activity_type_id" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);">
                                     <option value="" disabled selected>Selecionar...</option>
                                 </select>
                             </div>
@@ -115,25 +115,25 @@
                             <!-- Título (Antiga Descrição) -->
                             <div class="form-group">
                                 <label for="title" style="font-weight: 600;">Título <span class="required">*</span></label>
-                                <input type="text" id="title" name="title" placeholder="Ex: Curso de Python, Mini-curso de SQL..." style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                <input type="text" id="title" name="title" placeholder="Ex: Curso de Python, Mini-curso de SQL..." style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" >
                             </div>
 
                             <!-- Local / Instituição -->
                             <div class="form-group">
                                 <label for="location" style="font-weight: 600;">Local / Instituição <span class="required">*</span></label>
-                                <input type="text" id="location" name="location" placeholder="Ex: Udemy, Coursera, UFMS, SENAI..." style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                <input type="text" id="location" name="location" placeholder="Ex: Udemy, Coursera, UFMS, SENAI..." style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" >
                             </div>
 
                             <!-- Data e Carga Horária -->
                             <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                                 <div class="form-group">
                                     <label for="activity_date" style="font-weight: 600;">Data da atividade <span class="required">*</span></label>
-                                    <input type="date" id="activity_date" name="activity_date" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                    <input type="date" id="activity_date" name="activity_date" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" >
                                 </div>
 
                                 <div class="form-group">
                                     <label for="requested_hours" style="font-weight: 600;">Carga horária (Horas) <span class="required">*</span></label>
-                                    <input type="number" id="requested_hours" name="requested_hours" min="1" placeholder="Ex: 40" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" required>
+                                    <input type="number" id="requested_hours" name="requested_hours" min="1" placeholder="Ex: 40" style="width: 100%; padding: 0.75rem 0.875rem; font-size: 0.875rem; border: 1px solid var(--border-color); border-radius: 10px; outline: none; background-color: #FFFFFF; color: var(--text-primary);" >
                                 </div>
                             </div>
 
@@ -147,7 +147,7 @@
                             <div class="form-group">
                                 <label style="font-weight: 600;">Certificado / Comprovante <span class="required">*</span></label>
                                 <div class="file-dropzone" id="file-dropzone" style="border: 1.5px dashed #BFDBFE; border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; background: #FAFCFF; position: relative;">
-                                    <input type="file" id="certificate_file" name="file" accept=".pdf,.png,.jpg,.jpeg" required style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                                    <input type="file" id="certificate_file" name="file" accept=".pdf,.png,.jpg,.jpeg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
                                     
                                     <div class="dropzone-content" id="dropzone-content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
                                         <i data-lucide="upload" style="width: 28px; height: 28px; color: var(--brand-blue);"></i>
@@ -183,7 +183,7 @@
         </main>
     </div>
 
-    <script type="module" src="../../js/pages/nova-solicitacao.js"></script>
+    <script type="module" src="../../js/pages/alunos/nova-solicitacao.js"></script>
 
     <script>
         lucide.createIcons();

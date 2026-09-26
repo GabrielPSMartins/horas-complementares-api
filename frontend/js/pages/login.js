@@ -23,8 +23,15 @@ loginForm?.addEventListener('submit', async (e) => {
     msgErro.style.display = 'none';
     msgErro.textContent = '';
 
-    const idUser = document.getElementById('id_user').value;
-    const password = document.getElementById('password').value;
+    const idUser = document.getElementById('id_user').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    // --- MUDANÇA AQUI: Validação de campos vazios no front-end ---
+    if (!idUser || !password) {
+        msgErro.textContent = 'Por favor, preencha todos os campos!';
+        msgErro.style.display = 'block';
+        return; // Interrompe a execução antes do try/catch e não chama o loginUser
+    }
 
     try {
         // Faz a requisição usando a função do auth.js
@@ -45,7 +52,7 @@ loginForm?.addEventListener('submit', async (e) => {
 
         // Redireciona para o painel correto
         if (roleNoToken.includes('coord') || roleNoToken.includes('admin')) {
-            window.location.href = 'pages/coordenador/dashboard.html';
+            window.location.href = 'pages/coordenador/dashboards.html';
         } else {
             window.location.href = 'pages/aluno/dashboard.html';
         }
