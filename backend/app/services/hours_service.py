@@ -70,7 +70,7 @@ class HoursService:
     ) -> dict:
         total_approved = self.get_total_approved_hours(student_id)
         limit = course.total_required_hours + course.max_extra_hours
-        remaining = max(limit - total_approved, 0)
+        remaining = max(course.total_required_hours - total_approved, 0)
         progress_percentage = (
             round(min(total_approved / course.total_required_hours, 1.0) * 100, 2)
             if course.total_required_hours > 0
@@ -156,27 +156,39 @@ class HoursService:
             ],
         }
 
-    def get_course_requests_summary(self, course_id: uuid.UUID) -> dict:
-        rows = self.db.execute(
+    def get_course_requests_summary(
+        self,
+        course_id: uuid.UUID,
+        semester: int | None = None,
+    ) -> dict:
+
+        query = (
             select(
                 ActivityRequest.status,
                 func.count(ActivityRequest.id),
             )
             .join(Student, Student.id == ActivityRequest.student_id)
             .where(Student.course_id == course_id)
-            .group_by(ActivityRequest.status)
-        ).all()
+        )
+
+        if semester is not None:
+            query = query.where(Student.current_semester == semester)
+
+        rows = self.db.execute(query.group_by(ActivityRequest.status)).all()
 
         counts = {status: 0 for status in ActivityRequestStatus}
         for status, count in rows:
             counts[status] = count
 
-        total_students = self.db.scalar(
-            select(func.count(Student.id)).where(
-                Student.course_id == course_id,
-                Student.is_active.is_(True),
-            )
+        students_query = select(func.count(Student.id)).where(
+            Student.course_id == course_id,
+            Student.is_active.is_(True),
         )
+
+        if semester is not None:
+            students_query = students_query.where(Student.current_semester == semester)
+
+        total_students = self.db.scalar(students_query)
 
         return {
             "requests_by_status": counts,

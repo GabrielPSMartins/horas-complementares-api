@@ -6,13 +6,14 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.db.session import SessionLocal
 from app.models.activity_type import ActivityType
+from app.models.coordinator import Coordinator
 from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
 from config.settings import settings
 
 
-def build_initial_student_password(cpf: str) -> str:
+def build_initial_password(cpf: str) -> str:
     normalized_cpf = "".join(char for char in cpf if char.isdigit())
     return f"FEPI*{normalized_cpf}"
 
@@ -46,6 +47,35 @@ def get_or_create_user(
     db.flush()
 
     return user
+
+
+def get_or_create_coordinator(
+    db: Session,
+    *,
+    user_id,
+    name: str,
+    cpf: str,
+    registration_number: str,
+) -> Coordinator:
+    existing_coordinator = db.scalar(
+        select(Coordinator).where(Coordinator.user_id == user_id)
+    )
+
+    if existing_coordinator:
+        return existing_coordinator
+
+    coordinator = Coordinator(
+        user_id=user_id,
+        name=name,
+        cpf=cpf,
+        registration_number=registration_number,
+        is_active=True,
+    )
+
+    db.add(coordinator)
+    db.flush()
+
+    return coordinator
 
 
 def get_or_create_course(
@@ -85,6 +115,7 @@ def get_or_create_student(
     name: str,
     cpf: str,
     registration_number: str,
+    current_semester: int = 1,
 ) -> Student:
     existing_student = db.scalar(
         select(Student).where(Student.registration_number == registration_number)
@@ -99,6 +130,7 @@ def get_or_create_student(
         name=name,
         cpf=cpf,
         registration_number=registration_number,
+        current_semester=current_semester,
         enrollment_date=date(2023, 2, 1),
         expected_graduation_date=date(2026, 12, 31),
         is_active=True,
@@ -152,11 +184,6 @@ def seed_development_data() -> None:
     if not settings.default_root_password:
         raise RuntimeError("DEFAULT_ROOT_PASSWORD precisa ser configurada no .env.")
 
-    if not settings.default_coordinator_password:
-        raise RuntimeError(
-            "DEFAULT_COORDINATOR_PASSWORD precisa ser configurada no .env."
-        )
-
     db = SessionLocal()
 
     try:
@@ -169,13 +196,24 @@ def seed_development_data() -> None:
             must_change_password=True,
         )
 
+        coordinator_cpf = "11111111111"
+        coordinator_registration_number = "00000001"
+
         coordinator_user = get_or_create_user(
             db,
             email="coordenador.si@fepi.edu.br",
-            username="coordenador.si",
-            password=settings.default_coordinator_password,
+            username=coordinator_registration_number,
+            password=build_initial_password(coordinator_cpf),
             role=UserRole.COORDINATOR,
             must_change_password=True,
+        )
+
+        get_or_create_coordinator(
+            db,
+            user_id=coordinator_user.id,
+            name="Coordenador Sistemas de Informação",
+            cpf=coordinator_cpf,
+            registration_number=coordinator_registration_number,
         )
 
         course = get_or_create_course(
@@ -192,7 +230,7 @@ def seed_development_data() -> None:
             db,
             email="aluno.teste@fepi.edu.br",
             username=student_registration_number,
-            password=build_initial_student_password(student_cpf),
+            password=build_initial_password(student_cpf),
             role=UserRole.STUDENT,
             must_change_password=True,
         )
@@ -204,61 +242,23 @@ def seed_development_data() -> None:
             name="Aluno Teste",
             cpf=student_cpf,
             registration_number=student_registration_number,
+            current_semester=3,
         )
 
         activity_types = [
-            {
-                "name": "Curso",
-                "description": "Cursos extracurriculares, livres ou de aperfeiçoamento relacionados à formação do aluno.",
-            },
-            {
-                "name": "Palestra",
-                "description": "Participação em palestras acadêmicas, técnicas ou profissionais.",
-            },
-            {
-                "name": "Workshop",
-                "description": "Participação em oficinas práticas, treinamentos rápidos ou workshops.",
-            },
-            {
-                "name": "Congresso",
-                "description": "Participação em congressos, simpósios, semanas acadêmicas ou eventos científicos.",
-            },
-            {
-                "name": "Seminário",
-                "description": "Participação em seminários, encontros acadêmicos ou apresentações técnicas.",
-            },
-            {
-                "name": "Monitoria",
-                "description": "Atividades de monitoria acadêmica reconhecidas pela instituição.",
-            },
-            {
-                "name": "Iniciação Científica",
-                "description": "Participação em projetos de iniciação científica, pesquisa ou produção acadêmica.",
-            },
-            {
-                "name": "Projeto de Extensão",
-                "description": "Participação em projetos de extensão, ações comunitárias ou atividades institucionais.",
-            },
-            {
-                "name": "Publicação Acadêmica",
-                "description": "Publicação de artigos, resumos, trabalhos acadêmicos ou materiais científicos.",
-            },
-            {
-                "name": "Visita Técnica",
-                "description": "Participação em visitas técnicas relacionadas ao curso.",
-            },
-            {
-                "name": "Evento Acadêmico",
-                "description": "Participação em eventos acadêmicos diversos relacionados à área de formação.",
-            },
-            {
-                "name": "Estágio Não Obrigatório",
-                "description": "Atividades de estágio não obrigatório aceitas como atividade complementar.",
-            },
-            {
-                "name": "Outro",
-                "description": "Atividade complementar não classificada nos tipos anteriores, sujeita à análise do coordenador.",
-            },
+            {"name": "Curso", "description": "Cursos extracurriculares, livres ou de aperfeiçoamento relacionados à formação do aluno."},
+            {"name": "Palestra", "description": "Participação em palestras acadêmicas, técnicas ou profissionais."},
+            {"name": "Workshop", "description": "Participação em oficinas práticas, treinamentos rápidos ou workshops."},
+            {"name": "Congresso", "description": "Participação em congressos, simpósios, semanas acadêmicas ou eventos científicos."},
+            {"name": "Seminário", "description": "Participação em seminários, encontros acadêmicos ou apresentações técnicas."},
+            {"name": "Monitoria", "description": "Atividades de monitoria acadêmica reconhecidas pela instituição."},
+            {"name": "Iniciação Científica", "description": "Participação em projetos de iniciação científica, pesquisa ou produção acadêmica."},
+            {"name": "Projeto de Extensão", "description": "Participação em projetos de extensão, ações comunitárias ou atividades institucionais."},
+            {"name": "Publicação Acadêmica", "description": "Publicação de artigos, resumos, trabalhos acadêmicos ou materiais científicos."},
+            {"name": "Visita Técnica", "description": "Participação em visitas técnicas relacionadas ao curso."},
+            {"name": "Evento Acadêmico", "description": "Participação em eventos acadêmicos diversos relacionados à área de formação."},
+            {"name": "Estágio Não Obrigatório", "description": "Atividades de estágio não obrigatório aceitas como atividade complementar."},
+            {"name": "Outro", "description": "Atividade complementar não classificada nos tipos anteriores, sujeita à análise do coordenador."},
         ]
 
         for activity_type in activity_types:

@@ -27,6 +27,7 @@ class StudentRegistrationService:
         email: str,
         cpf: str,
         registration_number: str,
+        current_semester: int,
         enrollment_date: date,
         expected_graduation_date: date | None,
         course_id: uuid.UUID | None,
@@ -41,7 +42,7 @@ class StudentRegistrationService:
         )
 
         clean_cpf = self._only_digits(cpf)
-        initial_password = f"FEPI{clean_cpf}"
+        initial_password = f"FEPI*{clean_cpf}"
 
         user = User(
             email=email,
@@ -61,6 +62,7 @@ class StudentRegistrationService:
             name=name,
             cpf=clean_cpf,
             registration_number=registration_number,
+            current_semester=current_semester,
             enrollment_date=enrollment_date,
             expected_graduation_date=expected_graduation_date,
             is_active=True,

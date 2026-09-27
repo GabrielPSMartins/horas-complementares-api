@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Horas Complementares</title>
+    
+    <!-- Folhas de Estilo -->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <!-- Ícones Lucide e Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>   
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · UFMS</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+    
+                <a href="dashboards.html" class="nav-item active">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+    
+                <a href="solicitacoes.html" class="nav-item">
+                    <i data-lucide="file-check"></i>
+                    <span>Solicitações</span>
+                </a>
+    
+                <a href="alunos.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    <span>Alunos</span>
+                </a>
+    
+                <a href="relatorios.html" class="nav-item">
+                    <i data-lucide="chart-column"></i>
+                    <span>Relatórios</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">-</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">...</h4>
+                        <p id="sidebar-user-role">Coordenador</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ÁREA PRINCIPAL DA PÁGINA -->
+        <main class="app-main">
+            <!-- Header superior -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Dashboard</h1>
+                    <p>Visão geral do sistema</p>
+                </div>
+                <div class="flex-align-center">
+                    <div class="avatar-circle small" id="top-avatar">-</div>
+                    <div>
+                        <div class="stat-label" id="top-user-name">...</div>
+                        <div class="stat-sub">Coordenador</div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="app-content">
+                
+                <!-- 1. Banner Informativo do Coordenador -->
+                <section class="user-profile-summary">
+                    <div class="user-profile-info">
+                        <div class="avatar-circle large" id="banner-avatar">-</div>
+                        <div>
+                            <h2 id="banner-user-fullname">...</h2>
+                            <p class="hero-description" id="banner-user-info" style="color: #93c5fd; font-size: 0.85rem;">Coordenador · Sistemas de Informação</p>
+                        </div>
+                    </div>
+                    <div class="status-badge badge-pending" id="banner-pending-count" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: 1px solid rgba(255, 255, 255, 0.2);">
+                        0 pendente(s)
+                    </div>
+                </section>
+
+                <!-- 2. Filtro de Semestres (Identificado para o JS) -->
+                <section class="ui-card flex-align-center" style="padding: 12px 20px; gap: 12px; background: #ffffff;">
+                    <div class="flex-align-center" style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 600;">
+                        <i data-lucide="calendar" style="width: 18px; height: 18px;"></i>
+                        <span>Semestre:</span>
+                    </div>
+                    <div class="flex-align-center" style="gap: 6px; flex-wrap: wrap;" id="filtro-semestres">
+                        <button type="button" class="btn-semester active" data-semestre="todos">Todos</button>
+                        <button type="button" class="btn-semester" data-semestre="1">1º</button>
+                        <button type="button" class="btn-semester" data-semestre="2">2º</button>
+                        <button type="button" class="btn-semester" data-semestre="3">3º</button>
+                        <button type="button" class="btn-semester" data-semestre="4">4º</button>
+                        <button type="button" class="btn-semester" data-semestre="5">5º</button>
+                        <button type="button" class="btn-semester" data-semestre="6">6º</button>
+                        <button type="button" class="btn-semester" data-semestre="7">7º</button>
+                        <button type="button" class="btn-semester" data-semestre="8">8º</button>
+                    </div>
+                </section>
+
+                <!-- 3. Grid de Cards de Métricas -->
+                <section class="grid-4">
+                    <div class="ui-card">
+                        <div class="stat-icon-wrapper gray" style="margin-bottom: 12px;">
+                            <i data-lucide="file-text"></i>
+                        </div>
+                        <h3 class="stat-value" id="total-solicitacoes">0</h3>
+                        <div class="stat-label">Total de Sol.</div>
+                        <div class="stat-sub">solicitações</div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="stat-icon-wrapper yellow" style="margin-bottom: 12px;">
+                            <i data-lucide="clock"></i>
+                        </div>
+                        <h3 class="stat-value text-remaining" id="total-pendentes">0</h3>
+                        <div class="stat-label">Pendentes</div>
+                        <div class="stat-sub">aguardam análise</div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="stat-icon-wrapper green" style="margin-bottom: 12px;">
+                            <i data-lucide="check-circle-2"></i>
+                        </div>
+                        <h3 class="stat-value text-approved" id="total-aprovadas">0</h3>
+                        <div class="stat-label">Aprovadas</div>
+                        <div class="stat-sub">homologadas</div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="stat-icon-wrapper blue" style="margin-bottom: 12px;">
+                            <i data-lucide="users"></i>
+                        </div>
+                        <h3 class="stat-value text-pending" id="total-alunos">0</h3>
+                        <div class="stat-label">Alunos</div>
+                        <div class="stat-sub" id="sub-alunos">0 concluíram</div>
+                    </div>
+                </section>
+
+                <!-- 4. Gráficos em Grid 2 Colunas -->
+                <section class="grid-2">
+                    <div class="ui-card">
+                        <div class="card-header">
+                            <h1>Status das solicitações</h1>
+                        </div>
+                        <div class="chart-container flex-between-center" style="height: 200px;">
+                            <canvas id="chartStatus"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="ui-card">
+                        <div class="card-header">
+                            <h1>Solicitações por tipo de atividade</h1>
+                        </div>
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="chartCategorias"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Progresso dos Alunos -->
+                <section class="ui-card">
+                    <div class="flex-between-center" style="margin-bottom: 20px;">
+                        <div class="card-header">
+                            <h1>Progresso dos alunos</h1>
+                        </div>
+                        <a href="alunos.html" class="forgot-password" style="display: flex; align-items: center; gap: 4px;">
+                            Ver todos <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                        </a>
+                    </div>
+
+                    <div class="flex-list" id="lista-progresso-alunos" style="display: flex; flex-direction: column; gap: 16px;">
+                        <!-- O JS injeta os dados dos alunos aqui -->
+                    </div>
+                </section>
+
+                <!-- 6. Solicitações Aguardando Análise -->
+                <section class="ui-card">
+                    <div class="flex-between-center" style="margin-bottom: 20px;">
+                        <div class="card-header flex-align-center" style="gap: 8px;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background-color: #d97706; display: inline-block;"></span>
+                            <h1 style="font-size: 1.1rem; margin: 0;" id="titulo-pendentes">Aguardam análise (0)</h1>
+                        </div>
+                        <a href="solicitacoes.html" class="forgot-password" style="display: flex; align-items: center; gap: 4px;">
+                            Ver todas <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                        </a>
+                    </div>
+
+                    <div class="flex-list" id="lista-aguardam-analise" style="display: flex; flex-direction: column; gap: 16px;">
+                        <!-- O JS injeta as solicitações pendentes aqui -->
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts da Aplicação -->
+    <script type="module" src="../../js/pages/coordenador/dashboards.js"></script>
+
+    <!-- Inicialização dos Ícones Lucide -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

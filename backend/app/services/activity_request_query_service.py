@@ -65,10 +65,10 @@ class ActivityRequestQueryService:
         start_date: date | None = None,
         end_date: date | None = None,
         search: str | None = None,
+        semester: int | None = None,
         page: int = 1,
         page_size: int = 10,
     ) -> tuple[list[ActivityRequest], int]:
-        
         query = (
             select(ActivityRequest)
             .join(Student, Student.id == ActivityRequest.student_id)
@@ -88,6 +88,9 @@ class ActivityRequestQueryService:
 
         if end_date is not None:
             query = query.where(ActivityRequest.activity_date <= end_date)
+
+        if semester is not None:
+            query = query.where(Student.current_semester == semester)
 
         if search:
             search_term = f"%{search}%"
