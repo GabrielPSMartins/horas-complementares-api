@@ -33,9 +33,25 @@ export async function obterRelatorioAluno() {
     return await response.json();
 }
 
+// Busca o relatório do coordenador (/coordinator/me/report)
+export async function obterRelatorioCoordenador() {
+    const response = await fetch(`${API_BASE_URL}/coordinator/me/report`, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) {
+        throw new Error('UNAUTHORIZED');
+    }
+
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
 // Busca as solicitações do aluno (/activity-requests/me) aceitando filtros
 export async function obterMinhasSolicitacoes(params = {}) {
-    // Converte o objeto { status: 'PENDING', activity_type_id: 1 } para "?status=PENDING&activity_type_id=1"
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `${API_BASE_URL}/activity-requests/me${queryString ? `?${queryString}` : ''}`;
 
@@ -75,7 +91,6 @@ export async function obterTiposAtividades() {
 export async function criarSolicitacao(formData) {
     const response = await fetch(`${API_BASE_URL}/activity-requests`, {
         method: 'POST',
-        // Passamos `true` para NÃO adicionar 'Content-Type': 'application/json'
         headers: getHeaders(true), 
         body: formData
     });

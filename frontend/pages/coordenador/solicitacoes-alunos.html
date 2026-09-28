@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitações - Horas Complementares</title>
+    
+    <!-- Folhas de Estilo -->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <!-- Ícones Lucide e Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>   
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · UFMS</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+    
+                <a href="dashboards.html" class="nav-item">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+    
+                <a href="solicitacoes-alunos.html" class="nav-item active">
+                    <i data-lucide="file-check"></i>
+                    <span>Solicitações</span>
+                </a>
+    
+                <a href="alunos.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    <span>Alunos</span>
+                </a>
+    
+                <a href="relatorios.html" class="nav-item">
+                    <i data-lucide="chart-column"></i>
+                    <span>Relatórios</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">-</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">...</h4>
+                        <p id="sidebar-user-role">Coordenador</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ÁREA PRINCIPAL DA PÁGINA -->
+        <main class="app-main">
+            <!-- Header superior -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Solicitações</h1>
+                    <p>Gerencie as solicitações dos alunos</p>
+                </div>
+                <div class="flex-align-center">
+                    <div class="avatar-circle small" id="top-avatar">-</div>
+                    <div>
+                        <div class="stat-label" id="top-user-name">...</div>
+                        <div class="stat-sub">Coordenador</div>
+                    </div>
+                </div>
+            </header>
+
+            <div style="padding: 24px 32px;">
+                <!-- Barra de Pesquisa e Filtros -->
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="position: relative; flex-grow: 1;">
+                        <i data-lucide="search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: #94a3b8;"></i>
+                        <input type="text" id="input-search-aluno" placeholder="Buscar aluno..." style="width: 100%; padding: 10px 14px 10px 40px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.875rem; outline: none; box-sizing: border-box;">
+                    </div>
+
+                    <select id="select-status" style="padding: 10px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.875rem; color: #334155; outline: none; cursor: pointer;">
+                        <option value="todos">Todos status</option>
+                        <option value="PENDING">Pendente</option>
+                        <option value="APPROVED">Aprovada</option>
+                        <option value="REJECTED">Rejeitada</option>
+                        <option value="CANCELED">Cancelada</option>
+                    </select>
+
+                    <select id="select-atividade" style="padding: 10px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.875rem; color: #334155; outline: none; cursor: pointer;">
+                        <option value="todos">Todas atividades</option>
+                    </select>
+                </div>
+
+                <!-- Filtro de Semestre -->
+                <section class="ui-card flex-align-center" style="padding: 12px 20px; gap: 12px; background: #ffffff; margin-bottom: 20px;">
+                    <span style="display: flex; align-items: center; gap: 6px; font-size: 0.875rem; font-weight: 600; color: #64748b;">
+                        <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+                        Semestre:
+                    </span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn-semester active" data-semestre="todos">Todos</button>
+                        <button class="btn-semester" data-semestre="1">1º</button>
+                        <button class="btn-semester" data-semestre="2">2º</button>
+                        <button class="btn-semester" data-semestre="3">3º</button>
+                        <button class="btn-semester" data-semestre="4">4º</button>
+                        <button class="btn-semester" data-semestre="5">5º</button>
+                        <button class="btn-semester" data-semestre="6">6º</button>
+                        <button class="btn-semester" data-semestre="7">7º</button>
+                        <button class="btn-semester" data-semestre="8">8º</button>
+                    </div>
+                </section>
+
+                <!-- Tabela de Solicitações com Paginação e Visual Limpo -->
+<div class="ui-card table-card" style="padding: 0 20px 8px 20px; overflow: hidden;">
+    <div style="width: 100%; overflow-x: hidden;">
+        <table class="custom-table" style="margin-top: 0; width: 100%; table-layout: fixed; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <th style="width: 24%; padding: 12px 8px; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-align: left;">ALUNO</th>
+                    <th style="width: 22%; padding: 12px 8px; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-align: left;">ATIVIDADE</th>
+                    <th style="width: 10%; padding: 12px 8px; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-align: left;">HORAS</th>
+                    <th style="width: 12%; padding: 12px 8px; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-align: left;">ENVIO</th>
+                    <th style="width: 14%; padding: 12px 8px; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-align: left;">STATUS</th>
+                    <th style="width: 12%; padding: 12px 8px; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-align: left;">RESPONSÁVEL</th>
+                    <th style="width: 6%; padding: 12px 8px; color: #2563eb; font-size: 0.75rem; font-weight: 700; text-align: right;"></th>
+                </tr>
+            </thead>
+            <tbody id="tbody-solicitacoes">
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 32px 20px; color: #64748b;">
+                        Nenhuma solicitação encontrada.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Controles de Paginação -->
+    <div id="pagination-container" class="actions-bar flex-between-center" style="padding: 12px 0 4px 0; border-top: 1px solid var(--border-color, #e2e8f0); margin-top: 4px;">
+        <span id="pagination-info" class="stat-label" style="font-weight: 600; color: var(--text-secondary); font-size: 12px;">
+            0 solicitação(ões) · Pág. 1/1
+        </span>
+        <div class="flex-align-center" style="gap: 8px;">
+            <button id="btn-prev-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px; opacity: 0.4; cursor: not-allowed; border-radius: 8px;" disabled>
+                ← Ant.
+            </button>
+            <button id="btn-next-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px; opacity: 0.4; cursor: not-allowed; border-radius: 8px;" disabled>
+                Próx. →
+            </button>
+        </div>
+    </div>
+</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts da Aplicação -->
+    <script type="module" src="../../js/pages/coordenador/solicitacoes-alunos.js"></script>
+
+    <!-- Inicialização dos Ícones Lucide -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>
