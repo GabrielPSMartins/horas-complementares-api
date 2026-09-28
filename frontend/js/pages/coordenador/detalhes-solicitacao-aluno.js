@@ -1,12 +1,10 @@
 import { protegerRota } from '../../auth.js';
-import { API_BASE_URL } from '../../config.js';
 import { 
     obterSolicitacaoPorId, 
     obterTiposAtividades, 
     obterHistoricoSolicitacao,
     assumirSolicitacao, 
-    revisarSolicitacao,
-    cancelarSolicitacao 
+    revisarSolicitacao, 
 } from '../../api.js';
 
 let idSolicitacao = null;
