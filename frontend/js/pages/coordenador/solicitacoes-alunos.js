@@ -1,12 +1,21 @@
 import { protegerRota } from '../../auth.js';
-import { obterSolicitacoesCoordenador, obterTiposAtividades } from '../../api.js';
+import { 
+    obterSolicitacoesCoordenador, 
+    obterTiposAtividades, 
+    obterHistoricoSolicitacao, 
+    obterRelatorioCoordenador 
+} from '../../api.js';
 
 // Estado global da página
 let todasSolicitacoes = [];
 let solicitacoesFiltradas = [];
 let paginaAtual = 1;
-const itensPorPagina = 4; // Limite de 4 itens por página
+const itensPorPagina = 4;
 let mapaTiposAtividade = new Map();
+let mapaResponsaveisIds = new Map(); // Mapeia id_solicitacao -> changed_by_id
+
+let idCoordenadorLogado = null;
+let nomeCoordenadorLogado = '';
 
 // Filtros ativos
 let filtroBusca = '';
@@ -16,10 +25,24 @@ let filtroSemestre = 'todos';
 
 document.addEventListener('DOMContentLoaded', async () => {
     protegerRota();
+    garantirOpcaoEmAnaliseNoSelect();
     configurarEventosFiltros();
     configurarEventosPaginacao();
     await carregarDados();
 });
+
+function garantirOpcaoEmAnaliseNoSelect() {
+    const selectStatus = document.getElementById('select-status');
+    if (selectStatus) {
+        const jaExiste = Array.from(selectStatus.options).some(opt => opt.value.toUpperCase() === 'IN_REVIEW');
+        if (!jaExiste) {
+            const opt = document.createElement('option');
+            opt.value = 'IN_REVIEW';
+            opt.textContent = 'Em Análise';
+            selectStatus.appendChild(opt);
+        }
+    }
+}
 
 function configurarEventosFiltros() {
     const inputSearch = document.getElementById('input-search-aluno');
@@ -81,6 +104,18 @@ function configurarEventosPaginacao() {
     }
 }
 
+async function carregarDadosCoordenador() {
+    try {
+        const relatorio = await obterRelatorioCoordenador();
+        if (relatorio) {
+            idCoordenadorLogado = relatorio.coordinator_id || relatorio.id || relatorio.user_id;
+            nomeCoordenadorLogado = relatorio.coordinator_name || relatorio.name || relatorio.full_name || '';
+        }
+    } catch (e) {
+        console.warn("Não foi possível obter dados do relatório do coordenador:", e);
+    }
+}
+
 async function carregarDados() {
     const tbody = document.getElementById('tbody-solicitacoes');
     if (tbody) {
@@ -94,10 +129,15 @@ async function carregarDados() {
     }
 
     try {
-        await carregarOpcoesAtividades();
+        await Promise.all([
+            carregarDadosCoordenador(),
+            carregarOpcoesAtividades()
+        ]);
 
         const resData = await obterSolicitacoesCoordenador({ limit: 200 });
         todasSolicitacoes = Array.isArray(resData) ? resData : (resData?.items || resData?.data || []);
+
+        await carregarHistoricoResponsaveis();
 
         aplicarFiltrosEAtualizar();
     } catch (err) {
@@ -112,6 +152,34 @@ async function carregarDados() {
             `;
         }
     }
+}
+
+async function carregarHistoricoResponsaveis() {
+    mapaResponsaveisIds.clear();
+
+    const emAnaliseOuConcluidos = todasSolicitacoes.filter(item => 
+        item.status && item.status.toUpperCase() !== 'PENDING'
+    );
+
+    const promessas = emAnaliseOuConcluidos.map(async (item) => {
+        try {
+            const resHist = await obterHistoricoSolicitacao(item.id);
+            const historico = Array.isArray(resHist) ? resHist : (resHist?.items || resHist?.data || []);
+
+            // Busca o evento no histórico que alterou o status para IN_REVIEW, APPROVED ou REJECTED
+            const eventoAssumiu = historico.find(h => 
+                h.new_status === 'IN_REVIEW' || h.new_status === 'APPROVED' || h.new_status === 'REJECTED'
+            );
+
+            if (eventoAssumiu && eventoAssumiu.changed_by_id) {
+                mapaResponsaveisIds.set(String(item.id), eventoAssumiu.changed_by_id);
+            }
+        } catch (e) {
+            console.warn(`Erro ao carregar histórico da solicitação ${item.id}:`, e);
+        }
+    });
+
+    await Promise.all(promessas);
 }
 
 async function carregarOpcoesAtividades() {
@@ -157,7 +225,7 @@ function aplicarFiltrosEAtualizar() {
         const passaAtividade = filtroAtividade === 'todos' || tipoIdItem === filtroAtividade;
 
         const semestreItem = String(item.student_semester ?? '');
-        const passaSemestre = filtroSemestre === 'todos' || semestreItem === semestreItem ? (filtroSemestre === 'todos' || semestreItem === filtroSemestre) : true;
+        const passaSemestre = filtroSemestre === 'todos' || semestreItem === filtroSemestre;
 
         return passaBusca && passaStatus && passaAtividade && passaSemestre;
     });
@@ -228,6 +296,9 @@ function criarLinhaTabela(item) {
     const rgaAluno = item.student_registration_number || '';
     const tituloSolicitacao = item.title || item.description || 'Sem título';
 
+    // Formata o semestre do aluno (ex: "8º sem.")
+    const semestreTexto = item.student_semester ? `${item.student_semester}º sem.` : '';
+
     const typeId = String(item.activity_type_id || '');
     const nomeAtividade = mapaTiposAtividade.get(typeId) || 'Outros';
 
@@ -235,13 +306,27 @@ function criarLinhaTabela(item) {
     const dataEnvio = formatarData(item.created_at);
     const statusObj = formatarStatusBadge(item.status);
 
-    const responsavel = item.reviewed_by_id ? 'Coordenador' : '-';
-    const id = item.id;
+    const idStr = String(item.id);
+    const statusUpper = (item.status || 'PENDING').toUpperCase();
+
+    let responsavel = '-';
+    if (statusUpper !== 'PENDING') {
+        responsavel = item.reviewed_by_name || nomeCoordenadorLogado || 'Coordenador';
+    }
 
     return `
         <tr style="border-bottom: 1px solid #f1f5f9;">
             <td style="padding: 12px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                <div style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${nomeAluno}</div>
+                <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${nomeAluno}
+                    </span>
+                    ${semestreTexto ? `
+                        <span style="display: inline-flex; align-items: center; background-color: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-size: 0.6875rem; font-weight: 700; padding: 1px 8px; border-radius: 9999px; white-space: nowrap; flex-shrink: 0;">
+                            ${semestreTexto}
+                        </span>
+                    ` : ''}
+                </div>
                 <div style="font-size: 0.75rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${tituloSolicitacao}">
                     ${rgaAluno ? `${rgaAluno} · ` : ''}${tituloSolicitacao}
                 </div>
@@ -260,11 +345,11 @@ function criarLinhaTabela(item) {
                     <span>•</span><span>${statusObj.texto}</span>
                 </span>
             </td>
-            <td style="padding: 12px 8px; color: var(--text-secondary); font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <td style="padding: 12px 8px; color: var(--text-secondary); font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${responsavel}">
                 ${responsavel}
             </td>
             <td style="padding: 12px 8px; text-align: right;">
-                <a href="detalhes-solicitacao.html?id=${id}" title="Ver Detalhes" style="color: #2563eb; display: inline-flex; align-items: center; justify-content: center;">
+                <a href="detalhes-solicitacao-aluno.html?id=${idStr}" title="Ver Detalhes" style="color: #2563eb; display: inline-flex; align-items: center; justify-content: center;">
                     <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
                 </a>
             </td>
@@ -279,6 +364,8 @@ function formatarStatusBadge(statusRaw) {
             return { texto: 'Aprovada', classe: 'badge-approved' };
         case 'REJECTED':
             return { texto: 'Rejeitada', classe: 'badge-rejected' };
+        case 'IN_REVIEW':
+            return { texto: 'Em Análise', classe: 'badge-pending' };
         case 'CANCELED':
             return { texto: 'Cancelada', classe: 'badge-canceled' };
         case 'PENDING':

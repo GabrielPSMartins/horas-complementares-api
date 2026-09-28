@@ -101,7 +101,7 @@ export async function criarSolicitacao(formData) {
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Erro ao criar solicitação: ${response.status}`);
+        throw new Error(errorData.detail || errorData.message || `Erro ao criar solicitação: ${response.status}`);
     }
 
     return await response.json();
@@ -122,7 +122,7 @@ export async function obterDashboardCoordenador(params = {}) {
     return await response.json();
 }
 
-// Busca solicitações pendentes (/activity-requests/coordinator)
+// Busca solicitações do coordenador (/activity-requests/coordinator)
 export async function obterSolicitacoesCoordenador(params = {}) {
     const queryString = new URLSearchParams(params).toString();
     const endpoint = `${API_BASE_URL}/activity-requests/coordinator${queryString ? `?${queryString}` : ''}`;
@@ -133,6 +133,76 @@ export async function obterSolicitacoesCoordenador(params = {}) {
 
     if (response.status === 401) throw new Error('UNAUTHORIZED');
     if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
+
+    return await response.json();
+}
+
+// Busca uma solicitação específica por ID navegando nas solicitações do coordenador
+export async function obterSolicitacaoPorId(id) {
+    const res = await obterSolicitacoesCoordenador({ limit: 300 });
+    const lista = Array.isArray(res) ? res : (res?.items || res?.data || []);
+    const item = lista.find(s => String(s.id) === String(id));
+    if (!item) throw new Error('Solicitação não encontrada');
+    return item;
+}
+
+// Busca o histórico de alterações da solicitação (/activity-requests/{id}/history)
+export async function obterHistoricoSolicitacao(id) {
+    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/history`, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
+
+    return await response.json();
+}
+
+// Assume a responsabilidade de uma solicitação (/activity-requests/{id}/assume)
+export async function assumirSolicitacao(id) {
+    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/assume`, {
+        method: 'PATCH',
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `Erro ao assumir solicitação: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
+// Avalia a solicitação (Aprova ou Rejeita) (/activity-requests/{id}/review)
+export async function revisarSolicitacao(id, dadosRevisao) {
+    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/review`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(dadosRevisao)
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `Erro ao revisar solicitação: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
+// Cancela a solicitação (/activity-requests/{id}/cancel)
+export async function cancelarSolicitacao(id) {
+    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/cancel`, {
+        method: 'PATCH',
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `Erro ao cancelar solicitação: ${response.status}`);
+    }
 
     return await response.json();
 }

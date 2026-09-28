@@ -71,7 +71,8 @@ const ROTAS_PERMITIDAS = {
   ],
   coordenador: [
     'dashboards.html',
-    'solicitacoes-alunos.html' 
+    'solicitacoes-alunos.html',
+    'detalhes-solicitacao-aluno.html'
   ]
 };
 
