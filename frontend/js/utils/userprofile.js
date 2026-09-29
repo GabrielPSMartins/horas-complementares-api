@@ -1,4 +1,4 @@
-import { obterRelatorioAluno } from '../api.js';
+import { obterRelatorioAluno, obterRelatorioCoordenador } from '../api.js';
 
 // Busca as informações do aluno na API e preenche os elementos da tela
 export async function carregarDadosPerfil() {
@@ -59,5 +59,69 @@ export function preencherCamposPerfil(student) {
 
     if (elBannerFullName) elBannerFullName.innerText = nomeCompleto;
     if (elBannerInfo) elBannerInfo.innerText = `Mat. ${matriculaUser} · Email: ${emailUser}`;
+    if (elBannerAvatar) elBannerAvatar.innerText = inicial;
+}
+
+// Busca as informações do coordenador na API (/coordinator/me/report)
+export async function carregarDadosPerfilCoordenador() {
+    try {
+        const report = await obterRelatorioCoordenador();
+        
+        if (report) {
+            const coordinator = report.coordinator || report.user || report;
+            preencherCamposCoordenador(coordinator);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar informações do perfil do coordenador:', error);
+    }
+}
+
+// Mapeia e preenche os elementos HTML na página do coordenador
+export function preencherCamposCoordenador(coordinator) {
+    if (!coordinator) return;
+
+    // Mapeamento com as colunas name e registration_number
+    const nomeCompleto = coordinator.name || 'Coordenador';
+    const matriculaUser = coordinator.registration_number || '---';
+    const emailUser = coordinator.email || '---';
+
+    const partesNome = nomeCompleto.trim().split(' ');
+    const primeiroNome = partesNome[0] || 'Coordenador';
+    const inicial = primeiroNome.charAt(0).toUpperCase();
+
+    // 1. Inputs de Formulários
+    const elInputNome = document.getElementById('coordinator_name') || document.getElementById('user-name');
+    const elInputMatricula = document.getElementById('coordinator_registration') || document.getElementById('user-registration');
+    const elInputEmail = document.getElementById('user-email');
+
+    if (elInputNome) elInputNome.value = nomeCompleto;
+    if (elInputMatricula) elInputMatricula.value = matriculaUser;
+    if (elInputEmail) elInputEmail.value = emailUser;
+
+    // 2. Saudação Superior
+    const elHeaderFirstName = document.getElementById('header-user-firstname');
+    if (elHeaderFirstName) elHeaderFirstName.innerText = primeiroNome;
+
+    // 3. Header e Avatares
+    const elTopUserName = document.getElementById('top-user-name');
+    const elTopAvatar = document.getElementById('top-avatar');
+    if (elTopUserName) elTopUserName.innerText = nomeCompleto;
+    if (elTopAvatar) elTopAvatar.innerText = inicial;
+
+    // 4. Sidebar Lateral
+    const elSidebarUserName = document.getElementById('sidebar-user-name');
+    const elSidebarUserRole = document.getElementById('sidebar-user-role');
+    const elSidebarAvatar = document.getElementById('sidebar-avatar');
+    if (elSidebarUserName) elSidebarUserName.innerText = nomeCompleto;
+    if (elSidebarUserRole) elSidebarUserRole.innerText = `Coordenador · Mat: ${matriculaUser}`;
+    if (elSidebarAvatar) elSidebarAvatar.innerText = inicial;
+
+    // 5. Banner Central
+    const elBannerFullName = document.getElementById('banner-user-fullname');
+    const elBannerInfo = document.getElementById('banner-user-info');
+    const elBannerAvatar = document.getElementById('banner-avatar');
+
+    if (elBannerFullName) elBannerFullName.innerText = nomeCompleto;
+    if (elBannerInfo) elBannerInfo.innerText = `Coordenador · Mat. ${matriculaUser} · Email: ${emailUser}`;
     if (elBannerAvatar) elBannerAvatar.innerText = inicial;
 }

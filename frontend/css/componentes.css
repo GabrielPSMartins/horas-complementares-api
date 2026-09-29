@@ -434,6 +434,7 @@
 }
 
 .app-layout .badge-pending { background-color: #FEF3C7; color: #D97706; border-color: #FDE68A; }
+.app-layout .badge-in-review { background-color: #FEF3C7; color: #D97706; border-color: #FDE68A; }
 .app-layout .badge-approved { background-color: #D1FAE5; color: #059669; border-color: #A7F3D0; }
 .app-layout .badge-rejected { background-color: #FEE2E2; color: #EF4444; border-color: #FECDD3; }
 .app-layout .badge-canceled { background-color: #F3F4F6; color: #4B5563; border-color: #E5E7EB; }

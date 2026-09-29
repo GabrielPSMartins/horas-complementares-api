@@ -63,7 +63,6 @@ async function carregarDetalhes(id) {
 function encontrarUrlEmObjeto(obj) {
     if (!obj) return null;
 
-    // Se o próprio item for uma string que parece URL ou caminho de arquivo
     if (typeof obj === 'string') {
         const str = obj.trim();
         if (str.startsWith('http://') || str.startsWith('https://') || str.startsWith('/uploads/') || str.endsWith('.pdf') || str.endsWith('.jpg') || str.endsWith('.png')) {
@@ -74,14 +73,12 @@ function encontrarUrlEmObjeto(obj) {
 
     if (typeof obj !== 'object') return null;
 
-    // Procura em todas as chaves do objeto
     for (const key of Object.keys(obj)) {
         const val = obj[key];
         if (!val) continue;
 
         if (typeof val === 'string') {
             const strVal = val.trim();
-            // Verifica se a chave sugere arquivo/anexo ou se o valor parece um link/arquivo
             const chaveInformaAnexo = /file|arquivo|comprovante|proof|document|anexo|certificad|path|url/i.test(key);
             const valorPareceLink = strVal.startsWith('http') || strVal.startsWith('/') || /\.(pdf|png|jpg|jpeg|webp)$/i.test(strVal);
 
@@ -101,7 +98,6 @@ function encontrarUrlEmObjeto(obj) {
 }
 
 function preencherTela(item, mapaTipos) {
-    // 🔍 Exibe no console exatamente o que chegou da API
     console.log('=== DADOS DA SOLICITAÇÃO ===', item);
 
     const statusMap = {
@@ -162,25 +158,39 @@ function preencherTela(item, mapaTipos) {
     const elObservacoes = document.getElementById('detalhe-observacoes');
     if (elObservacoes) elObservacoes.textContent = item.reviewer_notes || item.observacoes || 'Nenhuma observação informada.';
 
-    // 📎 BUSCA RECURSIVA DO ARQUIVO
-    const fileUrl = encontrarUrlEmObjeto(item);
-    console.log('URL de anexo encontrada:', fileUrl);
+    // 📎 MONTAGEM DA ROTA DO MINIO (PORTA 9000)
+    const anexo = (Array.isArray(item.attachments) && item.attachments.length > 0) ? item.attachments[0] : null;
+    
+    // Tenta encontrar uma URL pronta ou o nome do ficheiro salvo
+    let fileUrl = encontrarUrlEmObjeto(item);
+    const nomeOriginal = anexo?.file_name || item.file_name || item.attachment_name || 'comprovante.pdf';
+    const nomeComUuid = anexo?.stored_name || anexo?.filename || nomeOriginal;
+
+    const studentObj = item.student || item.user || {};
+    const idAluno = item.student_id || studentObj.id || item.user_id;
+
+    const hostAtual = window.location.hostname;
+    const minioBaseUrl = `http://${hostAtual}:9000`;
+
+    // Se não encontrou uma URL completa, constrói a rota oficial do MinIO
+    if (!fileUrl && idAluno && nomeComUuid) {
+        fileUrl = `${minioBaseUrl}/certificates/${idAluno}/${nomeComUuid}`;
+    } else if (fileUrl && !fileUrl.startsWith('http')) {
+        fileUrl = `${minioBaseUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+    }
 
     const elAnexoNome = document.getElementById('anexo-nome');
     const elAnexoSub = document.getElementById('anexo-subtexto');
     const elBtnDownload = document.getElementById('btn-download-anexo');
 
     if (fileUrl) {
-        const nomeBruto = fileUrl.substring(fileUrl.lastIndexOf('/') + 1);
-        const nomeLimpo = decodeURIComponent(nomeBruto).split('?')[0];
-
-        if (elAnexoNome) elAnexoNome.textContent = nomeLimpo || 'comprovante.pdf';
+        if (elAnexoNome) elAnexoNome.textContent = nomeOriginal;
         if (elAnexoSub) elAnexoSub.textContent = 'Arquivo disponível para download';
 
         if (elBtnDownload) {
             elBtnDownload.href = fileUrl;
             elBtnDownload.target = '_blank';
-            elBtnDownload.setAttribute('download', nomeLimpo || 'comprovante.pdf');
+            elBtnDownload.setAttribute('download', nomeOriginal);
             elBtnDownload.style.setProperty('display', 'inline-flex', 'important');
         }
     } else {

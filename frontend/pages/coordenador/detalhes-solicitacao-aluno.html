@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes da Solicitação - Horas Complementares</title>
+    
+    <!-- CSS Globais -->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · UFMS</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+    
+                <a href="dashboards.html" class="nav-item">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+    
+                <a href="solicitacoes-alunos.html" class="nav-item active">
+                    <i data-lucide="file-check"></i>
+                    <span>Solicitações</span>
+                </a>
+    
+                <a href="alunos.html" class="nav-item">
+                    <i data-lucide="users"></i>
+                    <span>Alunos</span>
+                </a>
+    
+                <a href="relatorios.html" class="nav-item">
+                    <i data-lucide="chart-column"></i>
+                    <span>Relatórios</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">-</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">Carregando...</h4>
+                        <p id="sidebar-user-role">Coordenador</p>
+                    </div>
+                </div>
+
+                <a href="perfil.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="app-main">
+            <div class="app-content">
+                
+                <!-- Botão Voltar -->
+                <div style="margin-bottom: 20px;">
+                    <a href="solicitacoes-alunos.html" class="flex-align-center" style="color: #64748b; font-weight: 700; font-size: 14px; text-decoration: none; gap: 6px;">
+                        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+                        <span>Voltar</span>
+                    </a>
+                </div>
+
+                <!-- 1. CARD INFORMATIVO DO ALUNO -->
+                <div class="ui-card" style="margin-bottom: 20px; padding: 24px; border-radius: 16px;">
+                    <div style="display: flex; align-items: flex-start; gap: 20px;">
+                        <div style="width: 52px; height: 52px; border-radius: 14px; background-color: #2563eb; color: white; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; flex-shrink: 0;" id="aluno-avatar">
+                            --
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                                <h2 id="aluno-nome" style="font-size: 18px; font-weight: 800; color: #0f172a; margin: 0;">Carregando...</h2>
+                                <span id="aluno-semestre" style="display: inline-flex; align-items: center; background-color: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 9999px; white-space: nowrap;">
+                                    --
+                                </span>
+                            </div>
+                            <p id="aluno-info-curso" style="color: #64748b; font-size: 13px; margin: 0 0 16px 0;">
+                                --
+                            </p>
+                            
+                            <!-- Barra de Progresso do Aluno -->
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="font-size: 12px; font-weight: 700; color: #475569;">Progresso</span>
+                                    <span id="aluno-progresso-texto" style="font-size: 12px; font-weight: 800; color: #2563eb;">0% · 0/0h</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background-color: #f1f5f9; border-radius: 999px; overflow: hidden;">
+                                    <div id="aluno-progresso-bar" style="width: 0%; height: 100%; background-color: #2563eb; border-radius: 999px; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. CARD DETALHES DA SOLICITAÇÃO -->
+                <div class="ui-card" style="margin-bottom: 20px; padding: 24px; border-radius: 16px;">
+                    <!-- Tags de Eixo e Status -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <span id="detalhe-eixo-tag" style="background-color: #f0fdf4; color: #059669; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 16px; border: 1px solid #dcfce7;">
+                            --
+                        </span>
+                        <span id="detalhe-status-badge" style="background-color: #fffbebf5; color: #d97706; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 16px; border: 1px solid #fef3c7; display: inline-flex; align-items: center; gap: 4px;">
+                            • <span id="detalhe-status-texto">--</span>
+                        </span>
+                    </div>
+
+                    <!-- Título e Data -->
+                    <h1 id="detalhe-titulo" style="font-size: 20px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0;">
+                        Carregando...
+                    </h1>
+                    <p id="detalhe-data-envio" style="color: #64748b; font-size: 13px; margin: 0 0 24px 0;">
+                        --
+                    </p>
+
+                    <!-- Divisor sutil -->
+                    <div style="height: 1px; background-color: #f1f5f9; margin-bottom: 24px;"></div>
+
+                    <!-- Grid de Informações -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                                DESCRIÇÃO
+                            </label>
+                            <p id="detalhe-descricao" style="font-size: 14px; color: #1e293b; font-weight: 600; margin: 0; line-height: 1.5;">
+                                --
+                            </p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                                DATA DA ATIVIDADE
+                            </label>
+                            <p id="detalhe-data-atividade" style="font-size: 14px; color: #1e293b; font-weight: 600; margin: 0;">
+                                --
+                            </p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                                HORAS SOLICITADAS
+                            </label>
+                            <p id="detalhe-horas-solicitadas" style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;">
+                                --
+                            </p>
+                        </div>
+
+                        <div>
+                            <label style="display: block; font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                                OBSERVAÇÕES
+                            </label>
+                            <p id="detalhe-observacoes" style="font-size: 14px; color: #1e293b; font-weight: 600; margin: 0; line-height: 1.5;">
+                                --
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Caixa de Anexo Comprovante -->
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background-color: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b;">
+                                <i data-lucide="file-text" style="width: 20px; height: 20px;"></i>
+                            </div>
+                            <div>
+                                <strong id="anexo-nome" style="display: block; font-size: 14px; color: #1e293b; font-weight: 700;">
+                                    Nenhum arquivo anexado
+                                </strong>
+                                <span id="anexo-subtexto" style="font-size: 12px; color: #94a3b8;">
+                                    Comprovante do aluno
+                                </span>
+                            </div>
+                        </div>
+
+                        <a href="#" id="btn-download-anexo" download style="display: none; align-items: center; gap: 6px; background-color: #ffffff; border: 1px solid #dbeafe; color: #2563eb; font-size: 13px; font-weight: 700; padding: 6px 16px; border-radius: 20px; text-decoration: none;">
+                            <i data-lucide="download" style="width: 15px; height: 15px;"></i>
+                            <span>Baixar Comprovante</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 3. CARD AÇÕES DISPONÍVEIS -->
+                <div class="ui-card" style="margin-bottom: 20px; padding: 20px; border-radius: 16px;" id="card-acoes-disponiveis">
+                    <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0;">
+                        Ações disponíveis
+                    </h3>
+                    
+                    <!-- Opção A: Solicitação sem responsável -->
+                    <div id="box-acao-assumir" style="display: flex; background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 14px 18px; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 32px; height: 32px; border-radius: 50%; background-color: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">
+                                !
+                            </div>
+                            <div>
+                                <strong style="display: block; font-size: 14px; color: #92400e; font-weight: 700;">
+                                    Solicitação sem responsável
+                                </strong>
+                                <span style="font-size: 12px; color: #b45309;">
+                                    Assuma para poder analisar.
+                                </span>
+                            </div>
+                        </div>
+
+                        <button id="btn-assumir-solicitacao" style="background-color: #f59e0b; color: white; border: none; font-size: 13px; font-weight: 700; padding: 8px 20px; border-radius: 20px; cursor: pointer;">
+                            Assumir
+                        </button>
+                    </div>
+
+                    <!-- Opção B: Assumida por um responsável -->
+                    <div id="box-acao-avaliar" style="display: none; flex-direction: column; gap: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 18px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i data-lucide="user-check" style="width: 20px; height: 20px; color: #2563eb;"></i>
+                                <span style="font-size: 14px; color: #334155;">
+                                    Responsável pela análise: <strong id="nome-responsavel-analise" style="color: #0f172a;">--</strong>
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Mensagem para outros coordenadores -->
+                        <div id="alerta-apenas-leitura" style="display: none; color: #64748b; font-size: 13px; font-weight: 600; text-align: center; padding: 8px;">
+                            Esta solicitação está a ser analisada por outro coordenador. Apenas visualização permitida.
+                        </div>
+
+                        <!-- Botões de Ação do Responsável -->
+                        <div id="grupo-botoes-decisao" style="display: flex; gap: 12px; justify-content: flex-end;">
+                            <button id="btn-cancelar" style="background-color: #64748b; color: white; border: none; font-size: 13px; font-weight: 700; padding: 10px 20px; border-radius: 20px; cursor: pointer;">
+                                Cancelar
+                            </button>
+                            <button id="btn-recusar" style="background-color: #ef4444; color: white; border: none; font-size: 13px; font-weight: 700; padding: 10px 24px; border-radius: 20px; cursor: pointer;">
+                                Recusar
+                            </button>
+                            <button id="btn-aprovar" style="background-color: #10b981; color: white; border: none; font-size: 13px; font-weight: 700; padding: 10px 24px; border-radius: 20px; cursor: pointer;">
+                                Aprovar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. CARD HISTÓRICO / TIMELINE -->
+                <div class="ui-card" style="padding: 20px; border-radius: 16px;">
+                    <h3 style="font-size: 15px; font-weight: 800; color: #0f172a; margin: 0 0 20px 0;">
+                        Histórico
+                    </h3>
+                    
+                    <div id="detalhe-timeline" style="display: flex; flex-direction: column; gap: 16px;">
+                        <!-- Renderizado via JS -->
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Script JS Principal -->
+    <script type="module" src="../../js/pages/coordenador/detalhes-solicitacao-aluno.js"></script>
+</body>
+</html>

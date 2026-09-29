@@ -145,7 +145,7 @@ function preencherTabelaSolicitacoes(requests) {
         const horas = item.hours || item.requested_hours || item.horas || 0;
 
         return `
-            <tr style="cursor: pointer;" onclick="window.location.href='detalhes-solicitacao.html?id=${id}'">
+            <tr>
                 <td>
                     <strong style="color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 250px; display: block;">
                         ${titulo}
@@ -156,8 +156,13 @@ function preencherTabelaSolicitacoes(requests) {
                 <td style="color: var(--text-secondary);">${dataFormatada}</td>
                 <td>
                     <span class="status-badge ${statusInfo.badgeClass}">
-                        ${statusInfo.text}
+                       • ${statusInfo.text}
                     </span>
+                </td>
+                <td style="text-align: center;">
+                    <a href="detalhes-solicitacao.html?id=${id}" title="Ver Detalhes da Solicitação" style="color: var(--brand-blue, #0284c7); font-weight: 600;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="eye" aria-hidden="true" style="width: 18px; height: 18px;" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </a>
                 </td>
             </tr>
         `;

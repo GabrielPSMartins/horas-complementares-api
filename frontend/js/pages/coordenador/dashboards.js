@@ -179,9 +179,12 @@ function renderizarSolicitacoesPendentes(solicitacoes, container, tiposMap) {
         const semestreVal = item.semestre_real;
         const semestreHTML = semestreVal ? `<span class="status-badge badge-formacao" style="font-size: 0.7rem; padding: 2px 8px;">${semestreVal}º sem.</span>` : '';
         
-        const nomeTipoAtividade = tiposMap?.get(item.activity_type_id) 
-            || item.title 
-            || 'Atividade Complementar';
+        // Prioriza a busca pelo tipo de atividade no mapa via activity_type_id
+        const typeId = item.activity_type_id || item.activity_type?.id;
+        const nomeTipoAtividade = (typeId ? tiposMap?.get(String(typeId)) : null)
+            || item.activity_type?.name 
+            || item.activity_type_name
+            || 'Tipo Não Identificado';
         
         const horas = item.requested_hours ?? 0;
         const id = item.id;
@@ -289,9 +292,11 @@ function renderizarGraficoCategorias(solicitacoes, tiposMap) {
     const categoriasCount = {};
 
     solicitacoes.forEach(item => {
-        const nomeTipo = tiposMap?.get(item.activity_type_id) 
-            || item.title 
-            || 'Geral';
+        const typeId = item.activity_type_id || item.activity_type?.id;
+        const nomeTipo = (typeId ? tiposMap?.get(String(typeId)) : null)
+            || item.activity_type?.name 
+            || item.activity_type_name
+            || 'Não Identificado';
             
         categoriasCount[nomeTipo] = (categoriasCount[nomeTipo] || 0) + 1;
     });
@@ -332,14 +337,31 @@ async function obterMapaTiposAtividade() {
     try {
         const apiModule = await import('../../api.js');
         let tiposData = null;
-        if (typeof apiModule.obterTiposAtividade === 'function') {
+
+        if (typeof apiModule.obterTiposAtividades === 'function') {
+            tiposData = await apiModule.obterTiposAtividades();
+        } else if (typeof apiModule.obterTiposAtividade === 'function') {
             tiposData = await apiModule.obterTiposAtividade();
         } else if (typeof apiModule.listarTiposAtividade === 'function') {
             tiposData = await apiModule.listarTiposAtividade();
+        } else {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const res = await fetch('/activity-types/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) tiposData = await res.json();
         }
+
         const lista = Array.isArray(tiposData) ? tiposData : (tiposData?.items || tiposData?.data || []);
-        lista.forEach(t => mapa.set(t.id, t.name || t.nome || t.title));
+        lista.forEach(t => {
+            const nomeAtividade = t.name || t.nome || t.title || t.description;
+            if (t.id !== undefined && t.id !== null) {
+                mapa.set(String(t.id), nomeAtividade);
+            }
+        });
         mapaTiposGlobal = mapa;
-    } catch (e) {}
+    } catch (e) {
+        console.error("Erro ao obter mapa de tipos de atividade:", e);
+    }
     return mapa;
 }
