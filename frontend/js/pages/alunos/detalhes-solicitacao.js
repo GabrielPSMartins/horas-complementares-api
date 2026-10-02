@@ -1,5 +1,5 @@
 import { protegerRota } from '../../auth.js';
-import { obterMinhasSolicitacoes, obterTiposAtividades } from '../../api.js';
+import { obterMinhasSolicitacoes, obterTiposAtividades, abrirAnexo } from '../../api.js';
 import { carregarDadosPerfil } from '../../utils/userprofile.js';
 
 // Protege a rota verificando o token
@@ -55,46 +55,6 @@ async function carregarDetalhes(id) {
     } catch (error) {
         console.error('Erro ao carregar detalhes da solicitação:', error);
     }
-}
-
-/**
- * Função utilitária que percorre iterativamente qualquer objeto em busca de uma URL/caminho válida.
- */
-function encontrarUrlEmObjeto(obj) {
-    if (!obj) return null;
-
-    if (typeof obj === 'string') {
-        const str = obj.trim();
-        if (str.startsWith('http://') || str.startsWith('https://') || str.startsWith('/uploads/') || str.endsWith('.pdf') || str.endsWith('.jpg') || str.endsWith('.png')) {
-            return str;
-        }
-        return null;
-    }
-
-    if (typeof obj !== 'object') return null;
-
-    for (const key of Object.keys(obj)) {
-        const val = obj[key];
-        if (!val) continue;
-
-        if (typeof val === 'string') {
-            const strVal = val.trim();
-            const chaveInformaAnexo = /file|arquivo|comprovante|proof|document|anexo|certificad|path|url/i.test(key);
-            const valorPareceLink = strVal.startsWith('http') || strVal.startsWith('/') || /\.(pdf|png|jpg|jpeg|webp)$/i.test(strVal);
-
-            if (chaveInformaAnexo && strVal.length > 5) {
-                return strVal;
-            }
-            if (valorPareceLink) {
-                return strVal;
-            }
-        } else if (typeof val === 'object' && val !== null) {
-            const resultadoSub = encontrarUrlEmObjeto(val);
-            if (resultadoSub) return resultadoSub;
-        }
-    }
-
-    return null;
 }
 
 function preencherTela(item, mapaTipos) {
@@ -158,40 +118,28 @@ function preencherTela(item, mapaTipos) {
     const elObservacoes = document.getElementById('detalhe-observacoes');
     if (elObservacoes) elObservacoes.textContent = item.reviewer_notes || item.observacoes || 'Nenhuma observação informada.';
 
-    // 📎 MONTAGEM DA ROTA DO MINIO (PORTA 9000)
+    // 📎 ANEXO: o link de download é gerado pelo backend (URL temporária do MinIO)
     const anexo = (Array.isArray(item.attachments) && item.attachments.length > 0) ? item.attachments[0] : null;
-    
-    // Tenta encontrar uma URL pronta ou o nome do ficheiro salvo
-    let fileUrl = encontrarUrlEmObjeto(item);
-    const nomeOriginal = anexo?.file_name || item.file_name || item.attachment_name || 'comprovante.pdf';
-    const nomeComUuid = anexo?.stored_name || anexo?.filename || nomeOriginal;
-
-    const studentObj = item.student || item.user || {};
-    const idAluno = item.student_id || studentObj.id || item.user_id;
-
-    const hostAtual = window.location.hostname;
-    const minioBaseUrl = `http://${hostAtual}:9000`;
-
-    // Se não encontrou uma URL completa, constrói a rota oficial do MinIO
-    if (!fileUrl && idAluno && nomeComUuid) {
-        fileUrl = `${minioBaseUrl}/certificates/${idAluno}/${nomeComUuid}`;
-    } else if (fileUrl && !fileUrl.startsWith('http')) {
-        fileUrl = `${minioBaseUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
-    }
 
     const elAnexoNome = document.getElementById('anexo-nome');
     const elAnexoSub = document.getElementById('anexo-subtexto');
     const elBtnDownload = document.getElementById('btn-download-anexo');
 
-    if (fileUrl) {
-        if (elAnexoNome) elAnexoNome.textContent = nomeOriginal;
+    if (anexo) {
+        if (elAnexoNome) elAnexoNome.textContent = anexo.file_name || 'comprovante.pdf';
         if (elAnexoSub) elAnexoSub.textContent = 'Arquivo disponível para download';
 
         if (elBtnDownload) {
-            elBtnDownload.href = fileUrl;
-            elBtnDownload.target = '_blank';
-            elBtnDownload.setAttribute('download', nomeOriginal);
             elBtnDownload.style.setProperty('display', 'inline-flex', 'important');
+            elBtnDownload.onclick = async (event) => {
+                event.preventDefault();
+                try {
+                    await abrirAnexo(item.id, anexo.id);
+                } catch (err) {
+                    console.error('Erro ao abrir anexo:', err);
+                    alert(err.message || 'Erro ao abrir o anexo.');
+                }
+            };
         }
     } else {
         if (elAnexoNome) elAnexoNome.textContent = 'Nenhum comprovante anexado';

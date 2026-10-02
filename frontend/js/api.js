@@ -206,3 +206,36 @@ export async function cancelarSolicitacao(id) {
 
     return await response.json();
 }
+
+// Gera o link temporário de download do anexo (/activity-requests/{id}/attachments/{idAnexo}/download)
+export async function obterUrlDownloadAnexo(idSolicitacao, idAnexo) {
+    const response = await fetch(`${API_BASE_URL}/activity-requests/${idSolicitacao}/attachments/${idAnexo}/download`, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `Erro ao obter link do anexo: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
+// Abre o anexo em nova aba usando o link temporário gerado pelo backend
+export async function abrirAnexo(idSolicitacao, idAnexo) {
+    // A aba é aberta antes da requisição para não ser bloqueada como pop-up
+    const novaAba = window.open('', '_blank');
+
+    try {
+        const { url } = await obterUrlDownloadAnexo(idSolicitacao, idAnexo);
+        if (novaAba) {
+            novaAba.location.href = url;
+        } else {
+            window.location.href = url;
+        }
+    } catch (err) {
+        if (novaAba) novaAba.close();
+        throw err;
+    }
+}

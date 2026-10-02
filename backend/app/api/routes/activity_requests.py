@@ -14,6 +14,7 @@ from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.activity_request import (
+    ActivityAttachmentDownloadResponse,
     ActivityRequestCoordinatorResponse,
     ActivityRequestResponse,
 )
@@ -29,6 +30,7 @@ from app.services.activity_request_query_service import ActivityRequestQueryServ
 from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
 from app.services.hours_service import HoursService
 from app.services.storage import (
+    DOWNLOAD_URL_EXPIRES_SECONDS,
     InvalidFileError,
     MinioStorageService,
     StorageError,
@@ -337,6 +339,77 @@ def get_activity_request_history(
     return sorted(
         activity_request.history_items,
         key=lambda item: item.created_at,
+    )
+
+
+@router.get(
+    "/{activity_request_id}/attachments/{attachment_id}/download",
+    response_model=ActivityAttachmentDownloadResponse,
+)
+def get_activity_attachment_download_url(
+    activity_request_id: uuid.UUID,
+    attachment_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    storage_service: MinioStorageService = Depends(get_storage_service),
+) -> ActivityAttachmentDownloadResponse:
+    activity_request = db.scalar(
+        select(ActivityRequest)
+        .options(
+            selectinload(ActivityRequest.attachments),
+            selectinload(ActivityRequest.student).selectinload(Student.course),
+        )
+        .where(ActivityRequest.id == activity_request_id)
+    )
+
+    if activity_request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Solicitação não encontrada.",
+        )
+
+    is_owner_student = (
+        current_user.role == UserRole.STUDENT
+        and activity_request.student.user_id == current_user.id
+    )
+    is_course_coordinator = (
+        current_user.role == UserRole.COORDINATOR
+        and activity_request.student.course.coordinator_id == current_user.id
+    )
+
+    if not (is_owner_student or is_course_coordinator):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não possui permissão para acessar o anexo desta solicitação.",
+        )
+
+    attachment = next(
+        (item for item in activity_request.attachments if item.id == attachment_id),
+        None,
+    )
+
+    if attachment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Anexo não encontrado.",
+        )
+
+    try:
+        url = storage_service.generate_download_url(
+            object_name=attachment.file_url,
+            file_name=attachment.file_name,
+        )
+    except StorageError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc),
+        ) from exc
+
+    return ActivityAttachmentDownloadResponse(
+        url=url,
+        file_name=attachment.file_name,
+        content_type=attachment.content_type,
+        expires_in_seconds=DOWNLOAD_URL_EXPIRES_SECONDS,
     )
 
 

@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from pathlib import Path
 from typing import BinaryIO
 
@@ -15,6 +16,8 @@ ALLOWED_CONTENT_TYPES = {
     "image/png",
     "image/webp",
 }
+
+DOWNLOAD_URL_EXPIRES_SECONDS = 300
 
 
 class StorageError(Exception):
@@ -75,6 +78,29 @@ class MinioStorageService:
             raise StorageError("Erro ao enviar arquivo para o MinIO.") from exc
 
         return object_name
+
+    def generate_download_url(
+        self,
+        *,
+        object_name: str,
+        file_name: str,
+        expires_in_seconds: int = DOWNLOAD_URL_EXPIRES_SECONDS,
+    ) -> str:
+        safe_file_name = file_name.replace('"', "")
+
+        try:
+            return self.client.presigned_get_object(
+                bucket_name=self.bucket_name,
+                object_name=object_name,
+                expires=timedelta(seconds=expires_in_seconds),
+                response_headers={
+                    "response-content-disposition": (
+                        f'inline; filename="{safe_file_name}"'
+                    ),
+                },
+            )
+        except S3Error as exc:
+            raise StorageError("Erro ao gerar link de download no MinIO.") from exc
 
     def _validate_file(self, file: UploadFile) -> None:
         if not file.filename:
