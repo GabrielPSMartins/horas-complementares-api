@@ -25,3 +25,16 @@ class CoordinatorCreateResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CoordinatorMeResponse(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    name: str
+    email: str
+    cpf: str
+    registration_number: str
+    username: str
+    must_change_password: bool
+    course_id: uuid.UUID | None
+    course_name: str | None
