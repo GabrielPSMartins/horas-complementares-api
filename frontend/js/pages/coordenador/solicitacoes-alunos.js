@@ -5,6 +5,12 @@ import {
     obterHistoricoSolicitacao, 
     obterRelatorioCoordenador 
 } from '../../api.js';
+import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDadosPerfilCoordenador();
+});
+
 
 // Estado global da página
 let todasSolicitacoes = [];

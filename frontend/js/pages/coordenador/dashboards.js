@@ -1,14 +1,20 @@
 import { protegerRota } from '../../auth.js';
 import { obterSolicitacoesCoordenador } from '../../api.js';
+import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
 
 let chartStatusInstance = null;
 let chartCategoriasInstance = null;
 let mapaTiposGlobal = null;
 let todasSolicitacoesCache = null;
 
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDadosPerfilCoordenador();
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
     protegerRota();
     configurarFiltrosSemestre();
+    
     await atualizarDashboard('todos');
 });
 
@@ -202,7 +208,7 @@ function renderizarSolicitacoesPendentes(solicitacoes, container, tiposMap) {
                         <p class="stat-sub" style="margin-top: 2px; font-size: 0.8rem; color: #64748b;">${nomeTipoAtividade} · ${horas}h</p>
                     </div>
                 </div>
-                <a href="solicitacoes.html?id=${id}" class="btn-analys">Analisar</a>
+                <a href="detalhes-solicitacao-aluno.html?id=${id}" class="btn-analys">Analisar</a>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', itemHTML);

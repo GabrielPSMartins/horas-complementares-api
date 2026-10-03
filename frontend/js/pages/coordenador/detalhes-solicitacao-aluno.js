@@ -1,16 +1,14 @@
 import { protegerRota } from '../../auth.js';
-import { 
-    obterSolicitacaoPorId, 
-    obterTiposAtividades, 
-    obterHistoricoSolicitacao,
-    assumirSolicitacao, 
-    revisarSolicitacao, 
-    abrirAnexo,
-} from '../../api.js';
+import { obterSolicitacaoPorId, obterTiposAtividades, obterHistoricoSolicitacao,assumirSolicitacao, revisarSolicitacao, abrirAnexo} from '../../api.js';
+import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
 
 let idSolicitacao = null;
 let solicitacaoAtual = null;
 let idUsuarioLogado = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDadosPerfilCoordenador();
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
     protegerRota();

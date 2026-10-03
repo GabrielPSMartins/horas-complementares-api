@@ -239,3 +239,20 @@ export async function abrirAnexo(idSolicitacao, idAnexo) {
         throw err;
     }
 }
+
+export async function obterPerfilCoordenador() {
+    const response = await fetch(`${API_BASE_URL}/coordinators/me`, {
+        method: 'GET',
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) {
+        throw new Error('UNAUTHORIZED');
+    }
+
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+    }
+
+    return await response.json();
+}
