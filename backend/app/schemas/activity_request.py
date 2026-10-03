@@ -18,6 +18,13 @@ class ActivityAttachmentResponse(BaseModel):
         from_attributes = True
 
 
+class ActivityAttachmentDownloadResponse(BaseModel):
+    url: str
+    file_name: str
+    content_type: str | None
+    expires_in_seconds: int
+
+
 class ActivityRequestResponse(BaseModel):
     id: uuid.UUID
     student_id: uuid.UUID

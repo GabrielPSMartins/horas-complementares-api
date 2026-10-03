@@ -5,6 +5,7 @@ import {
     obterHistoricoSolicitacao,
     assumirSolicitacao, 
     revisarSolicitacao, 
+    abrirAnexo,
 } from '../../api.js';
 
 let idSolicitacao = null;
@@ -132,30 +133,24 @@ function preencherDadosSolicitacao(data, nomeTipo) {
     if (elHoras) elHoras.innerText = `${data.requested_hours ?? 0}h`;
     if (elObservacoes) elObservacoes.innerText = data.observations || data.rejection_reason || 'Nenhuma observação informada.';
 
-    // --- MONTAGEM DA ROTA DIRETA NO MINIO (PORTA 9001) ---
+    // --- ANEXO: o link de download é gerado pelo backend (URL temporária do MinIO) ---
     const anexo = (Array.isArray(data.attachments) && data.attachments.length > 0) ? data.attachments[0] : null;
 
-    // Prioriza o nome do arquivo gerado com UUID (stored_name/filename) ou o nome original
-    const nomeOriginal = anexo?.file_name || data.file_name || data.attachment_name || 'comprovante.pdf';
-    const nomeComUuid = anexo?.stored_name || anexo?.filename || nomeOriginal;
-
-    const studentObj = data.student || data.user || {};
-    const idAluno = data.student_id || studentObj.id || data.user_id;
-
-    if (idAluno && nomeComUuid) {
-       
-        const hostAtual = window.location.hostname; 
-        const minioBaseUrl = `http://${hostAtual}:9000`;
-
-        
-        const urlAnexo = `${minioBaseUrl}/certificates/${idAluno}/${nomeComUuid}`;
-
-        if (elAnexoNome) elAnexoNome.innerText = nomeOriginal;
+    if (anexo) {
+        if (elAnexoNome) elAnexoNome.innerText = anexo.file_name || 'comprovante.pdf';
         if (elSubtexto) elSubtexto.innerText = 'Clique para visualizar ou descarregar';
         if (elBtnDownload) {
-            elBtnDownload.href = urlAnexo;
-            elBtnDownload.target = '_blank';
+            elBtnDownload.removeAttribute('download');
             elBtnDownload.style.display = 'inline-flex';
+            elBtnDownload.onclick = async (event) => {
+                event.preventDefault();
+                try {
+                    await abrirAnexo(data.id, anexo.id);
+                } catch (err) {
+                    console.error('Erro ao abrir anexo:', err);
+                    alert(err.message || 'Erro ao abrir o anexo.');
+                }
+            };
         }
     } else {
         if (elAnexoNome) elAnexoNome.innerText = 'Nenhum comprovante anexado';
