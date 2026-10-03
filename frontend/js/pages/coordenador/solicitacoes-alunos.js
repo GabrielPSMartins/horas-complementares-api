@@ -3,8 +3,14 @@ import {
     obterSolicitacoesCoordenador, 
     obterTiposAtividades, 
     obterHistoricoSolicitacao, 
+    obterPerfilCoordenador,
     obterRelatorioCoordenador 
 } from '../../api.js';
+import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDadosPerfilCoordenador();
+});
 
 // Estado global da página
 let todasSolicitacoes = [];
@@ -12,7 +18,7 @@ let solicitacoesFiltradas = [];
 let paginaAtual = 1;
 const itensPorPagina = 4;
 let mapaTiposAtividade = new Map();
-let mapaResponsaveisIds = new Map(); // Mapeia id_solicitacao -> changed_by_id
+let mapaNomesResponsaveis = new Map(); // Mapeia id_solicitacao -> nome_coordenador
 
 let idCoordenadorLogado = null;
 let nomeCoordenadorLogado = '';
@@ -104,15 +110,27 @@ function configurarEventosPaginacao() {
     }
 }
 
+// Carrega os dados do coordenador logado na sessão
 async function carregarDadosCoordenador() {
     try {
-        const relatorio = await obterRelatorioCoordenador();
-        if (relatorio) {
-            idCoordenadorLogado = relatorio.coordinator_id || relatorio.id || relatorio.user_id;
-            nomeCoordenadorLogado = relatorio.coordinator_name || relatorio.name || relatorio.full_name || '';
+        let coordData = null;
+        if (typeof obterPerfilCoordenador === 'function') {
+            coordData = await obterPerfilCoordenador();
+        }
+        
+        if (coordData) {
+            idCoordenadorLogado = coordData.id || coordData.coordinator_id || coordData.user_id;
+            nomeCoordenadorLogado = coordData.name || coordData.coordinator_name || coordData.full_name || '';
+        } else {
+            const relatorio = await obterRelatorioCoordenador();
+            if (relatorio) {
+                const coordObj = relatorio.coordinator || relatorio.user || relatorio;
+                idCoordenadorLogado = coordObj.id || coordObj.coordinator_id || coordObj.user_id;
+                nomeCoordenadorLogado = coordObj.name || coordObj.coordinator_name || coordObj.full_name || '';
+            }
         }
     } catch (e) {
-        console.warn("Não foi possível obter dados do relatório do coordenador:", e);
+        console.warn("Não foi possível obter dados do perfil do coordenador:", e);
     }
 }
 
@@ -154,8 +172,9 @@ async function carregarDados() {
     }
 }
 
+// Consulta o histórico de cada solicitação para identificar o coordenador que assumiu
 async function carregarHistoricoResponsaveis() {
-    mapaResponsaveisIds.clear();
+    mapaNomesResponsaveis.clear();
 
     const emAnaliseOuConcluidos = todasSolicitacoes.filter(item => 
         item.status && item.status.toUpperCase() !== 'PENDING'
@@ -163,19 +182,31 @@ async function carregarHistoricoResponsaveis() {
 
     const promessas = emAnaliseOuConcluidos.map(async (item) => {
         try {
+            if (item.reviewed_by_name || item.reviewer_name) {
+                mapaNomesResponsaveis.set(String(item.id), item.reviewed_by_name || item.reviewer_name);
+                return;
+            }
+
             const resHist = await obterHistoricoSolicitacao(item.id);
             const historico = Array.isArray(resHist) ? resHist : (resHist?.items || resHist?.data || []);
 
-            // Busca o evento no histórico que alterou o status para IN_REVIEW, APPROVED ou REJECTED
             const eventoAssumiu = historico.find(h => 
                 h.new_status === 'IN_REVIEW' || h.new_status === 'APPROVED' || h.new_status === 'REJECTED'
             );
 
-            if (eventoAssumiu && eventoAssumiu.changed_by_id) {
-                mapaResponsaveisIds.set(String(item.id), eventoAssumiu.changed_by_id);
+            if (eventoAssumiu) {
+                const nomeNoHistorico = eventoAssumiu.changed_by_name 
+                    || eventoAssumiu.user_name 
+                    || eventoAssumiu.changed_by?.name;
+
+                if (nomeNoHistorico) {
+                    mapaNomesResponsaveis.set(String(item.id), nomeNoHistorico);
+                } else if (eventoAssumiu.changed_by_id && String(eventoAssumiu.changed_by_id) === String(idCoordenadorLogado)) {
+                    mapaNomesResponsaveis.set(String(item.id), nomeCoordenadorLogado);
+                }
             }
         } catch (e) {
-            console.warn(`Erro ao carregar histórico da solicitação ${item.id}:`, e);
+            console.warn(`Erro ao carregar histórico para solicitação ${item.id}:`, e);
         }
     });
 
@@ -296,7 +327,6 @@ function criarLinhaTabela(item) {
     const rgaAluno = item.student_registration_number || '';
     const tituloSolicitacao = item.title || item.description || 'Sem título';
 
-    // Formata o semestre do aluno (ex: "8º sem.")
     const semestreTexto = item.student_semester ? `${item.student_semester}º sem.` : '';
 
     const typeId = String(item.activity_type_id || '');
@@ -307,12 +337,22 @@ function criarLinhaTabela(item) {
     const statusObj = formatarStatusBadge(item.status);
 
     const idStr = String(item.id);
+    const studentIdObj = item.student || item.user || {};
+    const studentIdStr = item.student_id || studentIdObj.id || item.user_id || '';
+
     const statusUpper = (item.status || 'PENDING').toUpperCase();
 
     let responsavel = '-';
     if (statusUpper !== 'PENDING') {
-        responsavel = item.reviewed_by_name || nomeCoordenadorLogado || 'Coordenador';
+        responsavel = mapaNomesResponsaveis.get(idStr) 
+            || item.reviewed_by_name 
+            || item.reviewer_name 
+            || nomeCoordenadorLogado 
+            || 'Coordenador';
     }
+
+    // Passa o ID da solicitação E o ID do aluno na URL
+    const urlDetalhes = `detalhes-solicitacao-aluno.html?id=${idStr}${studentIdStr ? `&student_id=${studentIdStr}` : ''}`;
 
     return `
         <tr style="border-bottom: 1px solid #f1f5f9;">
@@ -349,7 +389,7 @@ function criarLinhaTabela(item) {
                 ${responsavel}
             </td>
             <td style="padding: 12px 8px; text-align: right;">
-                <a href="detalhes-solicitacao-aluno.html?id=${idStr}" title="Ver Detalhes" style="color: #2563eb; display: inline-flex; align-items: center; justify-content: center;">
+                <a href="${urlDetalhes}" title="Ver Detalhes" style="color: #2563eb; display: inline-flex; align-items: center; justify-content: center;">
                     <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
                 </a>
             </td>
