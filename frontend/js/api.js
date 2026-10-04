@@ -256,3 +256,26 @@ export async function obterPerfilCoordenador() {
 
     return await response.json();
 }
+
+// Altera a senha do usuário (/auth/change-password)
+export async function alterarSenha(senhaAtual, novaSenha) {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+            current_password: senhaAtual,
+            new_password: novaSenha
+        })
+    });
+
+    if (response.status === 401) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || 'Erro ao alterar a senha. Verifique a senha atual.');
+    }
+
+    return await response.json();
+}
