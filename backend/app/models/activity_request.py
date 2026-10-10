@@ -117,3 +117,11 @@ class ActivityRequest(Base):
         back_populates="activity_request",
         cascade="all, delete-orphan",
     )
+
+    @property
+    def in_review_by_name(self) -> str | None:
+        return self.in_review_by.display_name if self.in_review_by else None
+
+    @property
+    def reviewed_by_name(self) -> str | None:
+        return self.reviewer.display_name if self.reviewer else None

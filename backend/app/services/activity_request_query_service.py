@@ -7,9 +7,17 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.student import Student
+from app.models.user import User
 
 
 class ActivityRequestQueryService:
+    """
+    Responsável pelas consultas de listagem de solicitações.
+
+    Isolado dos services de ação porque lida apenas com leitura e
+    filtros. Reutilizado pela listagem do aluno (escopo: student_id)
+    e pela do coordenador (escopo: course_id).
+    """
 
     def __init__(self, db: Session):
         self.db = db
@@ -46,7 +54,11 @@ class ActivityRequestQueryService:
         total = len(self.db.scalars(query).all())
 
         query = (
-            query.options(selectinload(ActivityRequest.attachments))
+            query.options(
+                selectinload(ActivityRequest.attachments),
+                selectinload(ActivityRequest.in_review_by).selectinload(User.coordinator_profile),
+                selectinload(ActivityRequest.reviewer).selectinload(User.coordinator_profile),
+            )
             .order_by(ActivityRequest.created_at.desc())
             .offset((page - 1) * page_size)
             .limit(page_size)
@@ -107,6 +119,8 @@ class ActivityRequestQueryService:
             query.options(
                 selectinload(ActivityRequest.attachments),
                 selectinload(ActivityRequest.student),
+                selectinload(ActivityRequest.in_review_by).selectinload(User.coordinator_profile),
+                selectinload(ActivityRequest.reviewer).selectinload(User.coordinator_profile),
             )
             .order_by(ActivityRequest.created_at.desc())
             .offset((page - 1) * page_size)

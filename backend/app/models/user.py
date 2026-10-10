@@ -73,3 +73,15 @@ class User(Base):
         "ActivityRequestHistory",
         back_populates="changed_by",
     )
+
+    @property
+    def display_name(self) -> str:
+
+        if self.role == UserRole.COORDINATOR and self.coordinator_profile:
+            return self.coordinator_profile.full_name
+
+        if self.role == UserRole.STUDENT and self.student_profile:
+            return self.student_profile.full_name
+
+        return self.username
+

@@ -26,7 +26,15 @@ class ActivityReviewResponse(BaseModel):
 
     rejection_reason: str | None
 
+    in_review_by_id: UUID | None
+
+    in_review_by_name: str | None
+
+    in_review_at: datetime | None
+
     reviewed_by_id: UUID | None
+
+    reviewed_by_name: str | None
 
     reviewed_at: datetime | None
 
