@@ -24,7 +24,8 @@ class Coordinator(Base):
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(120), nullable=False)
     cpf: Mapped[str] = mapped_column(String(14), unique=True, nullable=False)
     registration_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
@@ -46,3 +47,7 @@ class Coordinator(Base):
         "User",
         back_populates="coordinator_profile",
     )
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}".strip()

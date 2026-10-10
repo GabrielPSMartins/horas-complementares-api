@@ -37,7 +37,8 @@ def create_student(
 
     try:
         student = service.register(
-            name=payload.name,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
             email=payload.email,
             cpf=payload.cpf,
             registration_number=payload.registration_number,
@@ -56,7 +57,9 @@ def create_student(
     return StudentCreateResponse(
         id=student.id,
         user_id=student.user_id,
-        name=student.name,
+        first_name=student.first_name,
+        last_name=student.last_name,
+        full_name=student.full_name,
         email=payload.email,
         cpf=student.cpf,
         registration_number=student.registration_number,

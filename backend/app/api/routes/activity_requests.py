@@ -143,7 +143,7 @@ def list_coordinator_activity_requests(
     response_items = [
         ActivityRequestCoordinatorResponse(
             **ActivityRequestResponse.model_validate(item).model_dump(),
-            student_name=item.student.name,
+            student_name=item.student.full_name,
             student_registration_number=item.student.registration_number,
             student_semester=item.student.current_semester,
         )

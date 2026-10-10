@@ -42,7 +42,9 @@ def get_my_coordinator_profile(
     return CoordinatorMeResponse(
         id=coordinator.id,
         user_id=coordinator.user_id,
-        name=coordinator.name,
+        first_name=coordinator.first_name,
+        last_name=coordinator.last_name,
+        full_name=coordinator.full_name,
         email=current_user.email,
         cpf=coordinator.cpf,
         registration_number=coordinator.registration_number,
@@ -67,7 +69,8 @@ def create_coordinator(
 
     try:
         coordinator = service.register(
-            name=payload.name,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
             email=payload.email,
             cpf=payload.cpf,
             registration_number=payload.registration_number,
@@ -82,7 +85,9 @@ def create_coordinator(
     return CoordinatorCreateResponse(
         id=coordinator.id,
         user_id=coordinator.user_id,
-        name=coordinator.name,
+        first_name=coordinator.first_name,
+        last_name=coordinator.last_name,
+        full_name=coordinator.full_name,
         email=payload.email,
         cpf=coordinator.cpf,
         registration_number=coordinator.registration_number,

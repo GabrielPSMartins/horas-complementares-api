@@ -53,7 +53,8 @@ def get_or_create_coordinator(
     db: Session,
     *,
     user_id,
-    name: str,
+    first_name: str,
+    last_name: str,
     cpf: str,
     registration_number: str,
 ) -> Coordinator:
@@ -66,7 +67,8 @@ def get_or_create_coordinator(
 
     coordinator = Coordinator(
         user_id=user_id,
-        name=name,
+        first_name=first_name,
+        last_name=last_name,
         cpf=cpf,
         registration_number=registration_number,
         is_active=True,
@@ -112,7 +114,8 @@ def get_or_create_student(
     *,
     user_id,
     course_id,
-    name: str,
+    first_name: str,
+    last_name: str,
     cpf: str,
     registration_number: str,
     current_semester: int = 1,
@@ -127,7 +130,8 @@ def get_or_create_student(
     student = Student(
         user_id=user_id,
         course_id=course_id,
-        name=name,
+        first_name=first_name,
+        last_name=last_name,
         cpf=cpf,
         registration_number=registration_number,
         current_semester=current_semester,
@@ -211,7 +215,8 @@ def seed_development_data() -> None:
         get_or_create_coordinator(
             db,
             user_id=coordinator_user.id,
-            name="Coordenador Sistemas de Informação",
+            first_name="Coordenador",
+            last_name="Sistemas de Informação",
             cpf=coordinator_cpf,
             registration_number=coordinator_registration_number,
         )
@@ -239,7 +244,8 @@ def seed_development_data() -> None:
             db,
             user_id=student_user.id,
             course_id=course.id,
-            name="Aluno Teste",
+            first_name="Aluno",
+            last_name="Teste",
             cpf=student_cpf,
             registration_number=student_registration_number,
             current_semester=3,

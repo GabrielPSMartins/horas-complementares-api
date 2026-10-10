@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from math import ceil
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
@@ -96,7 +96,7 @@ class ActivityRequestQueryService:
             search_term = f"%{search}%"
             query = query.where(
                 or_(
-                    Student.name.ilike(search_term),
+                    func.concat(Student.first_name, " ", Student.last_name).ilike(search_term),
                     Student.registration_number.ilike(search_term),
                 )
             )
