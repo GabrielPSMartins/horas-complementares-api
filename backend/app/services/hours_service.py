@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
@@ -130,13 +131,16 @@ class HoursService:
         user = self.db.get(User, student.user_id)
 
         return {
+            "generated_at": datetime.now(UTC),
             "student": {
+                "id": student.id,
                 "name": student.full_name,
                 "first_name": student.first_name,
                 "last_name": student.last_name,
                 "email": user.email if user else None,
                 "cpf": student.cpf,
                 "registration_number": student.registration_number,
+                "current_semester": student.current_semester,
                 "enrollment_date": student.enrollment_date,
             },
             "course": {
@@ -148,7 +152,9 @@ class HoursService:
             "summary": summary,
             "approved_activities": [
                 {
+                    "id": req.id,
                     "title": req.title,
+                    "description": req.description,
                     "activity_type_name": req.activity_type.name,
                     "accepted_hours": req.accepted_hours,
                     "activity_date": req.activity_date,
@@ -163,7 +169,6 @@ class HoursService:
         course_id: uuid.UUID,
         semester: int | None = None,
     ) -> dict:
-
         query = (
             select(
                 ActivityRequest.status,
