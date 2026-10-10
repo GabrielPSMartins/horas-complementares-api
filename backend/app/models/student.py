@@ -35,7 +35,8 @@ class Student(Base):
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(120), nullable=False)
     cpf: Mapped[str] = mapped_column(String(14), unique=True, nullable=False)
     registration_number: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
 
@@ -72,3 +73,7 @@ class Student(Base):
         "ActivityRequest",
         back_populates="student",
     )
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}".strip()

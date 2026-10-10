@@ -8,6 +8,8 @@ from app.schemas.hours_summary import HoursSummaryResponse
 
 class ReportStudentInfo(BaseModel):
     name: str
+    first_name: str
+    last_name: str
     email: str | None
     cpf: str
     registration_number: str

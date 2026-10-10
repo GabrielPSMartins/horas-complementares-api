@@ -5,7 +5,8 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class StudentCreateRequest(BaseModel):
-    name: str
+    first_name: str = Field(min_length=1, max_length=120)
+    last_name: str = Field(min_length=1, max_length=120)
     email: EmailStr
     cpf: str
     registration_number: str
@@ -14,10 +15,13 @@ class StudentCreateRequest(BaseModel):
     expected_graduation_date: date | None = None
     course_id: uuid.UUID | None = None
 
+
 class StudentCreateResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    name: str
+    first_name: str
+    last_name: str
+    full_name: str
     email: str
     cpf: str
     registration_number: str

@@ -131,7 +131,9 @@ class HoursService:
 
         return {
             "student": {
-                "name": student.name,
+                "name": student.full_name,
+                "first_name": student.first_name,
+                "last_name": student.last_name,
                 "email": user.email if user else None,
                 "cpf": student.cpf,
                 "registration_number": student.registration_number,

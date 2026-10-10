@@ -26,7 +26,8 @@ class CoordinatorRegistrationService:
     def register(
         self,
         *,
-        name: str,
+        first_name: str,
+        last_name: str,
         email: str,
         cpf: str,
         registration_number: str,
@@ -60,7 +61,8 @@ class CoordinatorRegistrationService:
 
         coordinator = Coordinator(
             user_id=user.id,
-            name=name,
+            first_name=first_name.strip(),
+            last_name=last_name.strip(),
             cpf=clean_cpf,
             registration_number=registration_number,
             is_active=True,
