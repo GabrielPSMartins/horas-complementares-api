@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, date, datetime
+from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
@@ -9,6 +9,7 @@ from app.api.dependencies.auth import get_current_user
 from app.db.dependencies import get_db
 from app.models.activity_attachment import ActivityAttachment
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
+from app.models.activity_request_history import ActivityRequestHistory
 from app.models.activity_type import ActivityType
 from app.models.course import Course
 from app.models.student import Student
@@ -309,7 +310,12 @@ def get_activity_request_history(
     activity_request = db.scalar(
         select(ActivityRequest)
         .options(
-            selectinload(ActivityRequest.history_items),
+            selectinload(ActivityRequest.history_items)
+            .selectinload(ActivityRequestHistory.changed_by)
+            .selectinload(User.coordinator_profile),
+            selectinload(ActivityRequest.history_items)
+            .selectinload(ActivityRequestHistory.changed_by)
+            .selectinload(User.student_profile),
             selectinload(ActivityRequest.student).selectinload(Student.course),
         )
         .where(ActivityRequest.id == activity_request_id)
