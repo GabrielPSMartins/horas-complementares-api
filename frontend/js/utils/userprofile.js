@@ -80,8 +80,7 @@ export async function carregarDadosPerfilCoordenador() {
 export function preencherCamposCoordenador(coordinator) {
     if (!coordinator) return;
 
-    const nomeCompleto = coordinator.name || 'Coordenador';
-
+    const nomeCompleto = coordinator.first_name + ' ' + coordinator.last_name || 'Coordenador';
     const partesNome = nomeCompleto.trim().split(' ');
     const primeiroNome = partesNome[0] || 'Coordenador';
     

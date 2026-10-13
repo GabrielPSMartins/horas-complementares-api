@@ -36,32 +36,33 @@ async function preencherDadosCoordenador() {
         // Busca os dados da API (/coordinators/me)
         const coord = await obterPerfilCoordenador();
 
-        const nome = coord?.name || coord?.nome || 'Coordenador';
+        const nome = coord?.first_name;
+        const sobrenome = coord?.last_name;
         const email = coord?.email || '---';
         const matricula = coord?.registration_number || coord?.registrationNumber || coord?.matricula || '---';
         const curso = coord?.course?.name || coord?.curso || 'Sistemas de Informação';
-        const inicial = obterInicial(nome);
+        const inicial = obterInicial(nome, sobrenome);
 
         // --- PREENCHE HEADER SUPERIOR ---
         const topAvatar = document.getElementById('top-avatar');
         if (topAvatar) topAvatar.textContent = inicial;
 
         const topUserName = document.getElementById('top-user-name');
-        if (topUserName) topUserName.textContent = nome;
+        if (topUserName) topUserName.textContent = nome + ' ' + sobrenome;
 
         // --- PREENCHE BARRA LATERAL (SIDEBAR) ---
         const sidebarAvatar = document.getElementById('sidebar-avatar');
         if (sidebarAvatar) sidebarAvatar.textContent = inicial;
 
         const sidebarUserName = document.getElementById('sidebar-user-name');
-        if (sidebarUserName) sidebarUserName.textContent = nome;
+        if (sidebarUserName) sidebarUserName.textContent = nome + ' ' + sobrenome;
 
         // --- PREENCHE O CARD DE PERFIL DA TELA ---
         const perfilAvatar = document.getElementById('perfil-avatar');
         if (perfilAvatar) perfilAvatar.textContent = inicial;
 
         const perfilNome = document.getElementById('perfil-nome');
-        if (perfilNome) perfilNome.textContent = nome;
+        if (perfilNome) perfilNome.textContent = nome + ' ' + sobrenome;
 
         const perfilCurso = document.getElementById('perfil-curso');
         if (perfilCurso) perfilCurso.textContent = curso;
@@ -187,7 +188,13 @@ function limparErros() {
     });
 }
 
-function obterInicial(nome) {
-    if (!nome) return 'C';
-    return nome.trim().charAt(0).toUpperCase();
+function obterInicial(nome,sobrenome) {
+    if (!nome) return '';
+    const inicialNome = nome.charAt(0).toUpperCase();
+    const inicialSobrenome = sobrenome ? sobrenome.charAt(0).toUpperCase() : '';
+    return inicialNome + inicialSobrenome;
+
+
+    
+
 }
