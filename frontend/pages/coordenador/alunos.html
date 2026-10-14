@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alunos - Horas Complementares</title>
+    
+    <!-- Folhas de Estilo Oficiais do Projeto -->
+    <link rel="stylesheet" href="../../css/global.css">
+    <link rel="stylesheet" href="../../css/layout.css">
+    <link rel="stylesheet" href="../../css/componentes.css">
+    
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>   
+</head>
+<body>
+
+    <div class="app-layout">
+        <!-- SIDEBAR ESQUERDA -->
+        <aside class="app-sidebar">
+            <div class="brand-header">
+                <div class="brand-icon">
+                    <i data-lucide="graduation-cap"></i>
+                </div>
+                <div class="brand-text">
+                    <h2>Horas Complementares</h2>
+                    <p>Sist. de Informação · FEPI</p>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <span class="nav-label">MENU</span>
+    
+                <a href="dashboards.html" class="nav-item">
+                    <i data-lucide="layout-grid"></i>
+                    <span>Dashboard</span>
+                </a>
+    
+                <a href="solicitacoes-alunos.html" class="nav-item">
+                    <i data-lucide="file-check"></i>
+                    <span>Solicitações</span>
+                </a>
+    
+                <a href="alunos.html" class="nav-item active">
+                    <i data-lucide="users"></i>
+                    <span>Alunos</span>
+                </a>
+    
+                <a href="relatorios.html" class="nav-item">
+                    <i data-lucide="chart-column"></i>
+                    <span>Relatórios</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="sidebar-user-card">
+                    <div class="avatar-circle sidebar-avatar" id="sidebar-avatar">-</div>
+                    <div class="sidebar-user-info">
+                        <h4 id="sidebar-user-name">...</h4>
+                        <p id="sidebar-user-role">Coordenador</p>
+                    </div>
+                </div>
+
+                <a href="perfil-coordenador.html" class="nav-item">
+                    <i data-lucide="user"></i>
+                    <span>Perfil</span>
+                </a>
+                <button id="btn-logout" class="nav-item btn-link-logout" style="background:none; border:none; width:100%; text-align:left; cursor:pointer;">
+                    <i data-lucide="log-out"></i>
+                    <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- ÁREA PRINCIPAL DA PÁGINA COM SCROLL ATIVO -->
+        <main class="app-main">
+            <!-- Header superior -->
+            <header class="app-header">
+                <div class="header-title">
+                    <h1>Alunos</h1>
+                    <p id="total-cadastrados-subtitle">0 alunos cadastrados</p>
+                </div>
+                <div class="flex-align-center">
+                    <div class="avatar-circle small" id="top-avatar">-</div>
+                    <div>
+                        <div class="stat-label" id="top-user-name">...</div>
+                        <div class="stat-sub">Coordenador</div>
+                    </div>
+                </div>
+            </header>
+
+            <div style="overflow-y: auto !important; height: 100vh;"> 
+                <div class="app-content" style="overflow: visible !important; height: auto !important; padding-bottom: 60px;">
+                    
+                    <!-- 1. CARDS DE SEMESTRES (Filtro 1º ao 8º idêntico à imagem) -->
+                    <section style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; width: 100%;" id="filtro-semestres">
+                        <!-- Injetado via JS -->
+                    </section>
+
+                    <!-- 2. CAMPO DE BUSCA -->
+                    <section class="ui-card" style="padding: 12px 20px; background: #ffffff;">
+                        <div class="flex-align-center" style="gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9999px; padding: 8px 18px;">
+                            <i data-lucide="search" style="width: 18px; height: 18px; color: #94a3b8;"></i>
+                            <input type="text" id="input-busca-aluno" placeholder="Buscar por nome ou matrícula..." style="border: none; background: transparent; outline: none; width: 100%; font-size: 0.9rem; color: #0f172a;">
+                        </div>
+                    </section>
+
+                    <!-- 3. RETÂNGULOS SUPERIORES (VISÃO DE CARDS) -->
+                    <section id="grid-cards-alunos" class="grid-2">
+                        <!-- Injetado via JS -->
+                    </section>
+
+                    <!-- 4. TABELA INFERIOR ("TODOS OS ALUNOS") -->
+                    <section class="ui-card" style="padding: 0; overflow: hidden; background: #ffffff; border-radius: 20px; margin-bottom: 40px;">
+                        <div class="flex-between-center" style="padding: 20px 28px; border-bottom: 1px solid #f1f5f9;">
+                            <h2 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Todos os alunos</h2>
+                            <span id="contador-encontrados" style="font-size: 0.85rem; font-weight: 700; color: #64748b;">0 encontrado(s)</span>
+                        </div>
+
+                        <div style="overflow-x: auto; width: 100%;">
+                            <table class="custom-table" style="width: 100%; margin: 0;">
+                                <thead>
+                                    <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                                        <th style="padding: 16px 28px; font-weight: 800; color: #2563eb; text-transform: uppercase; font-size: 0.75rem;">ALUNO</th>
+                                        <th style="padding: 16px 20px; font-weight: 800; color: #2563eb; text-transform: uppercase; font-size: 0.75rem;">MATRÍCULA</th>
+                                        <th style="padding: 16px 20px; font-weight: 800; color: #2563eb; text-transform: uppercase; font-size: 0.75rem;">SEMESTRE</th>
+                                        <th style="padding: 16px 20px; font-weight: 800; color: #2563eb; text-transform: uppercase; font-size: 0.75rem;">HORAS</th>
+                                        <th style="padding: 16px 20px; font-weight: 800; color: #2563eb; text-transform: uppercase; font-size: 0.75rem; width: 220px;">PROGRESSO</th>
+                                        <th style="padding: 16px 28px; text-align: right;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-alunos-body">
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 32px; color: #64748b;">Carregando alunos...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts da Aplicação -->
+    <script type="module" src="../../js/pages/coordenador/alunos.js"></script>
+
+    <script>
+        if (window.lucide) lucide.createIcons();
+    </script>
+</body>
+</html>
