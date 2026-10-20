@@ -307,3 +307,20 @@ export async function exportarRelatorioPdf() {
     a.remove();
     window.URL.revokeObjectURL(url);
 }
+
+// Busca o relatório detalhado de um aluno específico por ID (/students/{student_id}/report)
+export async function obterRelatorioAlunoPorId(studentId) {
+    const response = await fetch(`${API_BASE_URL}/students/${studentId}/report`, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) {
+        throw new Error('UNAUTHORIZED');
+    }
+
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+    }
+
+    return await response.json();
+}
