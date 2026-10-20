@@ -1,5 +1,5 @@
 import { protegerRota } from '../../auth.js';
-import { obterRelatorioAluno, obterMinhasSolicitacoes } from '../../api.js';
+import { obterRelatorioAluno, obterMinhasSolicitacoes, exportarRelatorioPdf } from '../../api.js';
 import { preencherCamposPerfil } from '../../utils/userprofile.js';
 
 // Garante a proteção da rota antes de carregar o restante
@@ -7,7 +7,40 @@ protegerRota();
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarDadosDashboard();
+
+    // Evento para o botão de exportar relatório
+    const btnExport = document.getElementById('btn-export');
+    if (btnExport) {
+        btnExport.addEventListener('click', tratarExportacaoPdf);
+    }
 });
+
+async function tratarExportacaoPdf() {
+    const btnExport = document.getElementById('btn-export');
+    if (!btnExport) return;
+
+    const conteudoOriginal = btnExport.innerHTML;
+
+    try {
+        btnExport.disabled = true;
+        btnExport.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Gerando PDF...`;
+        if (window.lucide) window.lucide.createIcons();
+
+        await exportarRelatorioPdf();
+
+    } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        if (error.message === 'UNAUTHORIZED') {
+            window.location.href = '../../index.html';
+        } else {
+            alert(error.message || 'Não foi possível baixar o relatório. Tente novamente.');
+        }
+    } finally {
+        btnExport.disabled = false;
+        btnExport.innerHTML = conteudoOriginal;
+        if (window.lucide) window.lucide.createIcons();
+    }
+}
 
 async function carregarDadosDashboard() {
     try {
@@ -181,7 +214,6 @@ function renderizarGraficoEvolucao(approvedHoursList) {
     const canvas = document.getElementById('evolutionChart');
     if (!canvas) return;
 
-    // Destrói a instância anterior caso a função seja chamada novamente
     if (evolutionChartInstance) {
         evolutionChartInstance.destroy();
     }

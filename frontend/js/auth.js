@@ -74,7 +74,8 @@ const ROTAS_PERMITIDAS = {
     'dashboards.html',
     'solicitacoes-alunos.html',
     'detalhes-solicitacao-aluno.html',
-    'perfil-coordenador.html'
+    'perfil-coordenador.html',
+    'alunos.html'
   ]
 };
 
