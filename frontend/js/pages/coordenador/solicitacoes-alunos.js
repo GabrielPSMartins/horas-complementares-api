@@ -18,7 +18,7 @@ let solicitacoesFiltradas = [];
 let paginaAtual = 1;
 const itensPorPagina = 4;
 let mapaTiposAtividade = new Map();
-let mapaNomesResponsaveis = new Map(); // Mapeia id_solicitacao -> nome_coordenador
+let mapaNomesResponsaveis = new Map();
 
 let idCoordenadorLogado = null;
 let nomeCoordenadorLogado = '';
@@ -78,11 +78,41 @@ function configurarEventosFiltros() {
     const botoesSemestre = document.querySelectorAll('.btn-semester');
     botoesSemestre.forEach(btn => {
         btn.addEventListener('click', (e) => {
+            if (e.currentTarget.disabled) return;
+
             botoesSemestre.forEach(b => b.classList.remove('active'));
             e.currentTarget.classList.add('active');
             filtroSemestre = e.currentTarget.getAttribute('data-semestre') || 'todos';
             aplicarFiltrosEAtualizar();
         });
+    });
+}
+
+function atualizarBotoesSemestreDisponiveis() {
+    const semestresDisponiveis = new Set();
+
+    todasSolicitacoes.forEach(item => {
+        const semVal = item.student_semester ?? item.student?.current_semester ?? item.semester;
+        if (semVal !== undefined && semVal !== null) {
+            const semNum = String(semVal).replace(/[^0-9]/g, '');
+            if (semNum) semestresDisponiveis.add(semNum);
+        }
+    });
+
+    const botoesSemestre = document.querySelectorAll('.btn-semester');
+    botoesSemestre.forEach(btn => {
+        const semAttr = btn.getAttribute('data-semestre');
+        if (semAttr === 'todos') {
+            btn.disabled = false;
+        } else {
+            const existe = semestresDisponiveis.has(String(semAttr));
+            btn.disabled = !existe;
+            if (!existe) {
+                btn.title = "Nenhuma solicitação encontrada para este semestre";
+            } else {
+                btn.removeAttribute('title');
+            }
+        }
     });
 }
 
@@ -110,7 +140,6 @@ function configurarEventosPaginacao() {
     }
 }
 
-// Carrega os dados do coordenador logado na sessão
 async function carregarDadosCoordenador() {
     try {
         let coordData = null;
@@ -155,6 +184,7 @@ async function carregarDados() {
         const resData = await obterSolicitacoesCoordenador({ limit: 200 });
         todasSolicitacoes = Array.isArray(resData) ? resData : (resData?.items || resData?.data || []);
 
+        atualizarBotoesSemestreDisponiveis();
         await carregarHistoricoResponsaveis();
 
         aplicarFiltrosEAtualizar();
@@ -172,7 +202,6 @@ async function carregarDados() {
     }
 }
 
-// Consulta o histórico de cada solicitação para identificar o coordenador que assumiu
 async function carregarHistoricoResponsaveis() {
     mapaNomesResponsaveis.clear();
 
@@ -255,7 +284,7 @@ function aplicarFiltrosEAtualizar() {
         const tipoIdItem = String(item.activity_type_id || '');
         const passaAtividade = filtroAtividade === 'todos' || tipoIdItem === filtroAtividade;
 
-        const semestreItem = String(item.student_semester ?? '');
+        const semestreItem = String(item.student_semester ?? item.student?.current_semester ?? item.semester ?? '');
         const passaSemestre = filtroSemestre === 'todos' || semestreItem === filtroSemestre;
 
         return passaBusca && passaStatus && passaAtividade && passaSemestre;
@@ -327,7 +356,8 @@ function criarLinhaTabela(item) {
     const rgaAluno = item.student_registration_number || '';
     const tituloSolicitacao = item.title || item.description || 'Sem título';
 
-    const semestreTexto = item.student_semester ? `${item.student_semester}º sem.` : '';
+    const semVal = item.student_semester ?? item.student?.current_semester ?? item.semester;
+    const semestreTexto = semVal ? `${semVal}º sem.` : '';
 
     const typeId = String(item.activity_type_id || '');
     const nomeAtividade = mapaTiposAtividade.get(typeId) || 'Outros';
@@ -351,7 +381,6 @@ function criarLinhaTabela(item) {
             || 'Coordenador';
     }
 
-    // Passa o ID da solicitação E o ID do aluno na URL
     const urlDetalhes = `detalhes-solicitacao-aluno.html?id=${idStr}${studentIdStr ? `&student_id=${studentIdStr}` : ''}`;
 
     return `

@@ -23,6 +23,8 @@ function configurarFiltrosSemestre() {
 
     botoes.forEach(btn => {
         btn.addEventListener('click', async (e) => {
+            if (e.currentTarget.disabled) return;
+
             const botaoClicado = e.currentTarget;
 
             botoes.forEach(b => b.classList.remove('active'));
@@ -31,6 +33,33 @@ function configurarFiltrosSemestre() {
             const semestre = botaoClicado.getAttribute('data-semestre');
             await atualizarDashboard(semestre);
         });
+    });
+}
+
+function atualizarBotoesSemestreDisponiveis(solicitacoes) {
+    const semestresDisponiveis = new Set();
+
+    solicitacoes.forEach(item => {
+        if (item.semestre_real !== undefined && item.semestre_real !== null) {
+            const semNum = String(item.semestre_real).replace(/[^0-9]/g, '');
+            if (semNum) semestresDisponiveis.add(semNum);
+        }
+    });
+
+    const botoes = document.querySelectorAll('.btn-semester');
+    botoes.forEach(btn => {
+        const semAttr = btn.getAttribute('data-semestre');
+        if (semAttr === 'todos') {
+            btn.disabled = false;
+        } else {
+            const existe = semestresDisponiveis.has(String(semAttr));
+            btn.disabled = !existe;
+            if (!existe) {
+                btn.title = "Nenhuma solicitação encontrada para este semestre";
+            } else {
+                btn.removeAttribute('title');
+            }
+        }
     });
 }
 
@@ -73,6 +102,8 @@ async function atualizarDashboard(semestre = 'todos') {
     try {
         const tiposMap = await obterMapaTiposAtividade();
         const todasSolicitacoes = await carregarTodasSolicitacoes();
+
+        atualizarBotoesSemestreDisponiveis(todasSolicitacoes);
 
         let solicitacoesFiltradas = todasSolicitacoes;
 
@@ -185,7 +216,6 @@ function renderizarSolicitacoesPendentes(solicitacoes, container, tiposMap) {
         const semestreVal = item.semestre_real;
         const semestreHTML = semestreVal ? `<span class="status-badge badge-formacao" style="font-size: 0.7rem; padding: 2px 8px;">${semestreVal}º sem.</span>` : '';
         
-        // Prioriza a busca pelo tipo de atividade no mapa via activity_type_id
         const typeId = item.activity_type_id || item.activity_type?.id;
         const nomeTipoAtividade = (typeId ? tiposMap?.get(String(typeId)) : null)
             || item.activity_type?.name 
