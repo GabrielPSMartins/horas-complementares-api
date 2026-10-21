@@ -16,7 +16,7 @@ function getHeaders(isFormData = false) {
     return headers;
 }
 
-// Busca o relatório do aluno (/students/me/report)
+// Busca o relatório do próprio aluno logado (/students/me/report)
 export async function obterRelatorioAluno() {
     const response = await fetch(`${API_BASE_URL}/students/me/report`, {
         headers: getHeaders()
@@ -31,6 +31,58 @@ export async function obterRelatorioAluno() {
     }
 
     return await response.json();
+}
+
+// Busca o relatório detalhado de um aluno específico por ID (/students/{student_id}/report)
+export async function obterRelatorioAlunoPorId(studentId) {
+    const response = await fetch(`${API_BASE_URL}/students/${studentId}/report`, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) {
+        throw new Error('UNAUTHORIZED');
+    }
+
+    if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+    }
+
+    return await response.json();
+}
+
+// Abre o relatório PDF de um aluno em nova aba (/students/{student_id}/report/pdf)
+export async function exportarRelatorioPdfAlunoPorId(studentId) {
+    const novaAba = window.open('', '_blank');
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}/report/pdf`, {
+            method: 'GET',
+            headers: getHeaders()
+        });
+
+        if (response.status === 401) {
+            if (novaAba) novaAba.close();
+            throw new Error('UNAUTHORIZED');
+        }
+
+        if (!response.ok) {
+            if (novaAba) novaAba.close();
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || errorData.message || 'Erro ao gerar visualização do relatório PDF.');
+        }
+
+        const blob = await response.blob();
+        const fileUrl = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+        
+        if (novaAba) {
+            novaAba.location.href = fileUrl;
+        } else {
+            window.location.href = fileUrl;
+        }
+    } catch (err) {
+        if (novaAba) novaAba.close();
+        throw err;
+    }
 }
 
 // Busca o relatório do coordenador (/coordinator/me/report)
@@ -224,7 +276,6 @@ export async function obterUrlDownloadAnexo(idSolicitacao, idAnexo) {
 
 // Abre o anexo em nova aba usando o link temporário gerado pelo backend
 export async function abrirAnexo(idSolicitacao, idAnexo) {
-    // A aba é aberta antes da requisição para não ser bloqueada como pop-up
     const novaAba = window.open('', '_blank');
 
     try {
@@ -280,7 +331,7 @@ export async function alterarSenha(senhaAtual, novaSenha) {
     return await response.json();
 }
 
-// Exporta o relatório do aluno em formato PDF (/students/me/report/pdf)
+// Exporta o relatório do próprio aluno logado em formato PDF (/students/me/report/pdf)
 export async function exportarRelatorioPdf() {
     const response = await fetch(`${API_BASE_URL}/students/me/report/pdf`, {
         method: 'GET',
@@ -296,7 +347,6 @@ export async function exportarRelatorioPdf() {
         throw new Error(errorData.detail || errorData.message || 'Erro ao exportar relatório PDF.');
     }
 
-    // Recebe o arquivo binário em Blob e gera o download
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

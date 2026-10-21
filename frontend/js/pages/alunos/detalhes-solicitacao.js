@@ -4,6 +4,7 @@ import {
     obterMinhasSolicitacoes, 
     obterTiposAtividades, 
     obterHistoricoSolicitacao, 
+    cancelarSolicitacao,
     abrirAnexo 
 } from '../../api.js';
 import { carregarDadosPerfil } from '../../utils/userprofile.js';
@@ -77,8 +78,9 @@ async function carregarDetalhes(id) {
             console.warn('Erro ao obter histórico da solicitação:', e);
         }
 
-        // Renderiza as informações na tela
+        // Renderiza as informações na tela, gerencia botões e exibe o histórico detalhado
         preencherTela(solicitacao, mapaTipos, historico);
+        configurarBotaoCancelamento(solicitacao);
         renderizarHistorico(solicitacao, historico);
 
     } catch (error) {
@@ -90,6 +92,7 @@ function preencherTela(item, mapaTipos, historico = []) {
     const statusMap = {
         'PENDING': { text: '• Pendente', badgeClass: 'badge-pending' },
         'IN_REVIEW': { text: '• Em Análise', badgeClass: 'badge-pending' },
+        'UNDER_REVIEW': { text: '• Em Análise', badgeClass: 'badge-pending' },
         'APPROVED': { text: '• Aprovada', badgeClass: 'badge-approved' },
         'REJECTED': { text: '• Rejeitada', badgeClass: 'badge-rejected' },
         'CANCELED': { text: '• Cancelada', badgeClass: 'badge-canceled' }
@@ -133,7 +136,7 @@ function preencherTela(item, mapaTipos, historico = []) {
     const elHorasSolicitadas = document.getElementById('detalhe-horas-solicitadas');
     if (elHorasSolicitadas) elHorasSolicitadas.textContent = `${item.requested_hours ?? item.hours ?? item.horas ?? 0}h`;
 
-    const horasAprovadasVal = item.accepted_hours ?? item.approved_hours;
+    const horasAprovadasVal = item.accepted_hours ?? item.granted_hours ?? item.approved_hours;
     const elHorasAprovadas = document.getElementById('detalhe-horas-aprovadas');
     if (elHorasAprovadas) {
         elHorasAprovadas.textContent = (horasAprovadasVal !== undefined && horasAprovadasVal !== null) 
@@ -142,10 +145,9 @@ function preencherTela(item, mapaTipos, historico = []) {
     }
 
     // --- REGRA DE ANALISADOR ---
-    // Verifica se houve alguma mudança de status por parte de um coordenador (IN_REVIEW, APPROVED, REJECTED)
     const foiAssumidoOuAvaliado = Array.isArray(historico) && historico.some(h => {
-        const st = (h.new_status || '').toUpperCase();
-        return ['IN_REVIEW', 'APPROVED', 'REJECTED'].includes(st);
+        const st = (h.new_status || h.status_to || h.status || '').toUpperCase();
+        return ['IN_REVIEW', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(st);
     });
 
     let nomeAnalisador = item.reviewed_by_name || item.reviewer_name || item.reviewed_by?.name || item.reviewer?.name;
@@ -155,12 +157,12 @@ function preencherTela(item, mapaTipos, historico = []) {
         if (rawStatus === 'PENDING' && !foiAssumidoOuAvaliado && !nomeAnalisador) {
             elAnalisadoPor.textContent = 'Aguardando avaliação';
         } else {
-            elAnalisadoPor.textContent = nomeAnalisador || 'Thiago Al';
+            elAnalisadoPor.textContent = nomeAnalisador || 'Coordenador';
         }
     }
 
     // Observações do Avaliador
-    const observacaoTexto = item.rejection_reason || item.reviewer_notes || item.observations || item.observacoes;
+    const observacaoTexto = item.rejection_reason || item.justification || item.reviewer_notes || item.observations || item.observacoes;
     const elObservacoes = document.getElementById('detalhe-observacoes');
     if (elObservacoes) elObservacoes.textContent = observacaoTexto || 'Nenhuma observação informada.';
 
@@ -172,7 +174,7 @@ function preencherTela(item, mapaTipos, historico = []) {
     const elBtnDownload = document.getElementById('btn-download-anexo');
 
     if (anexo) {
-        if (elAnexoNome) elAnexoNome.textContent = anexo.file_name || 'comprovante.pdf';
+        if (elAnexoNome) elAnexoNome.textContent = anexo.file_name || anexo.filename || 'comprovante.pdf';
         if (elAnexoSub) elAnexoSub.textContent = 'Arquivo disponível para download';
 
         if (elBtnDownload) {
@@ -198,61 +200,258 @@ function preencherTela(item, mapaTipos, historico = []) {
     }
 }
 
+// Configura dinamicamente a exibição do botão e do painel de confirmação inline em baixo
+function configurarBotaoCancelamento(solicitacao) {
+    const rawStatus = (solicitacao.status || 'PENDING').toUpperCase();
+    
+    // Tenta capturar o container de ações ou cria um
+    let containerWrapper = document.getElementById('container-btn-cancelar');
+    
+    if (rawStatus === 'PENDING') {
+        if (!containerWrapper) {
+            const containerAcoes = document.getElementById('detalhe-acoes') || document.querySelector('.card-footer') || document.querySelector('.ui-card');
+            
+            if (containerAcoes) {
+                containerWrapper = document.createElement('div');
+                containerWrapper.id = 'container-btn-cancelar';
+                containerWrapper.style.cssText = 'margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;';
+                
+                containerWrapper.innerHTML = `
+                    <div id="painel-acao-cancelar" style="display: flex; justify-content: flex-end;">
+                        <button id="btn-cancelar-solicitacao" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
+                            <i data-lucide="x-circle" style="width: 18px; height: 18px;"></i>
+                            <span>Cancelar Solicitação</span>
+                        </button>
+                    </div>
+
+                    <!-- Caixa Inline de Confirmação (Oculta por padrão) -->
+                    <div id="box-confirmacao-cancelamento" style="display: none; background-color: #fff5f5; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin-top: 12px;">
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <i data-lucide="alert-triangle" style="width: 22px; height: 22px; color: #dc2626; flex-shrink: 0; margin-top: 2px;"></i>
+                            <div style="flex: 1;">
+                                <strong style="color: #991b1b; font-size: 14px; display: block; margin-bottom: 4px;">Confirmar cancelamento?</strong>
+                                <p style="color: #7f1d1d; font-size: 13px; margin: 0 0 12px 0; line-height: 1.4;">
+                                    Tem certeza de que deseja cancelar esta solicitação? Esta ação não poderá ser desfeita.
+                                </p>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button id="btn-desistir-cancelamento" style="background-color: #ffffff; color: #475569; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">
+                                        Voltar
+                                    </button>
+                                    <button id="btn-confirmar-cancelamento-final" style="background-color: #dc2626; color: #ffffff; border: none; padding: 6px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
+                                        Sim, cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                containerAcoes.appendChild(containerWrapper);
+            }
+        }
+
+        const btnAbrirConfirmacao = document.getElementById('btn-cancelar-solicitacao');
+        const painelAcao = document.getElementById('painel-acao-cancelar');
+        const boxConfirmacao = document.getElementById('box-confirmacao-cancelamento');
+        const btnDesistir = document.getElementById('btn-desistir-cancelamento');
+        const btnConfirmarFinal = document.getElementById('btn-confirmar-cancelamento-final');
+
+        if (btnAbrirConfirmacao && boxConfirmacao) {
+            // Exibe a caixa de confirmação embaixo ao clicar no botão
+            btnAbrirConfirmacao.onclick = () => {
+                painelAcao.style.display = 'none';
+                boxConfirmacao.style.display = 'block';
+                if (window.lucide) window.lucide.createIcons();
+            };
+
+            // Oculta a confirmação e volta ao botão original
+            btnDesistir.onclick = () => {
+                boxConfirmacao.style.display = 'none';
+                painelAcao.style.display = 'flex';
+            };
+
+            // Executa o cancelamento via API ao confirmar na caixa
+            btnConfirmarFinal.onclick = async () => {
+                btnConfirmarFinal.disabled = true;
+                btnConfirmarFinal.innerText = 'Cancelando...';
+
+                try {
+                    await cancelarSolicitacao(solicitacao.id);
+                    window.location.reload();
+                } catch (err) {
+                    console.error('Erro ao cancelar solicitação:', err);
+                    alert(err.message || 'Erro ao cancelar a solicitação.');
+                    btnConfirmarFinal.disabled = false;
+                    btnConfirmarFinal.innerText = 'Sim, cancelar';
+                }
+            };
+        }
+    } else if (containerWrapper) {
+        containerWrapper.style.display = 'none';
+    }
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+// Extrai título, cor do badge e marcador circular dinâmico
+function extrairInfoHistorico(item) {
+    const acao = String(item.action || item.type || item.event || '').toUpperCase();
+    const stPara = String(item.status_to || item.new_status || item.status || '').toUpperCase();
+    const stDe = String(item.status_from || '').toUpperCase();
+
+    let titulo = item.title || item.action || 'Atualização';
+    let iconeCor = '#2563eb';
+    let bgCor = '#e0f2fe';
+
+    if (acao.includes('CREATE') || acao.includes('SUBMIT') || acao.includes('CRIADA') || stPara === 'PENDING') {
+        titulo = 'Solicitação criada pelo aluno';
+        iconeCor = '#0284c7';
+        bgCor = '#e0f2fe';
+    } else if (acao.includes('ASSUME') || acao.includes('ASSUMIDA') || stPara.includes('UNDER_REVIEW') || stPara.includes('IN_REVIEW')) {
+        titulo = 'Análise assumida pelo coordenador';
+        iconeCor = '#d97706';
+        bgCor = '#fef3c7';
+    } else if (acao.includes('APPROVE') || stPara.includes('APPROVED')) {
+        titulo = 'Solicitação aprovada';
+        iconeCor = '#16a34a';
+        bgCor = '#dcfce7';
+    } else if (acao.includes('REJECT') || stPara.includes('REJECTED')) {
+        titulo = 'Solicitação rejeitada';
+        iconeCor = '#dc2626';
+        bgCor = '#fee2e2';
+    } else if (acao.includes('CANCEL') || stPara.includes('CANCELED')) {
+        titulo = 'Solicitação cancelada pelo aluno';
+        iconeCor = '#64748b';
+        bgCor = '#f1f5f9';
+    } else if (stDe && stPara) {
+        titulo = `Status alterado de ${stDe} para ${stPara}`;
+    }
+
+    return { titulo, iconeCor, bgCor };
+}
+
+// Mapeia quem realizou a ação
+function extrairNomeResponsavel(item, solicitacao = null) {
+    const nomeNoHistorico = item.changed_by_name 
+        || item.user_name 
+        || item.changed_by?.name 
+        || item.created_by_name 
+        || item.reviewer_name 
+        || item.author 
+        || item.user?.name;
+
+    if (nomeNoHistorico) {
+        return nomeNoHistorico;
+    }
+
+    const acao = String(item.action || item.type || '').toUpperCase();
+    const status = String(item.status_to || item.new_status || item.status || '').toUpperCase();
+
+    if (acao.includes('CREATE') || acao.includes('SUBMIT') || acao.includes('CANCEL') || status === 'PENDING' || status === 'CANCELED') {
+        return solicitacao?.student?.name || solicitacao?.student_name || 'Aluno';
+    }
+
+    const nomeCoordenador = solicitacao?.reviewed_by_name || solicitacao?.reviewer_name || solicitacao?.reviewer?.name;
+    if (nomeCoordenador) {
+        return nomeCoordenador;
+    }
+
+    return 'Coordenador';
+}
+
+// Renderiza o histórico exatamente no mesmo padrão visual da tela do coordenador
 function renderizarHistorico(solicitacao, historico) {
     const container = document.getElementById('detalhe-timeline');
     if (!container) return;
 
-    if (historico && historico.length > 0) {
-        container.innerHTML = historico.map(item => {
-            const tituloFormatado = formatarTituloStatus(item.new_status || item.status);
-            const descricao = item.comment || item.description || 'Atualização no sistema';
-            
+    let lista = Array.isArray(historico) ? historico : (historico?.items || historico?.data || []);
+
+    if (lista && lista.length > 0) {
+        container.innerHTML = lista.map(item => {
+            const dataFmt = formatarDataHoraBR(item.created_at || item.date || item.timestamp);
+            const { titulo, iconeCor, bgCor } = extrairInfoHistorico(item);
+            const responsavelTexto = extrairNomeResponsavel(item, solicitacao);
+
+            const acao = String(item.action || item.type || '').toUpperCase();
+            const statusPara = String(item.status_to || item.new_status || item.status || '').toUpperCase();
+
+            const isAprovado = acao.includes('APPROVE') || statusPara === 'APPROVED';
+            const isRejeitado = acao.includes('REJECT') || statusPara === 'REJECTED';
+
+            const horasAprovadasVal = item.accepted_hours !== undefined && item.accepted_hours !== null 
+                ? item.accepted_hours 
+                : (item.granted_hours !== undefined && item.granted_hours !== null ? item.granted_hours : solicitacao?.accepted_hours || solicitacao?.granted_hours);
+
+            const motivoRejeicaoVal = item.justification || item.comment || item.rejection_reason || item.notes || solicitacao?.justification || solicitacao?.rejection_reason;
+
             return `
-                <div class="timeline-item" style="margin-bottom: 16px;">
-                    <div class="timeline-content">
-                        <div class="timeline-dot"></div>
-                        <div>
-                            <strong class="timeline-title" style="font-size: 0.95rem; color: #1e293b;">${tituloFormatado}</strong>
-                            <p class="timeline-sub" style="margin: 2px 0 0 0; color: #64748b; font-size: 0.875rem;">${descricao}</p>
+                <div style="display: flex; gap: 14px; border-left: 2px solid #e2e8f0; padding-left: 18px; position: relative; padding-bottom: 20px;">
+                    <div style="position: absolute; left: -7px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background-color: ${iconeCor}; border: 2px solid #ffffff;"></div>
+                    
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 4px;">
+                            <span style="font-size: 12px; font-weight: 800; color: ${iconeCor}; background-color: ${bgCor}; padding: 2px 10px; border-radius: 999px;">
+                                ${titulo}
+                            </span>
+                            <span style="font-size: 12px; font-weight: 600; color: #94a3b8;">
+                                ${dataFmt}
+                            </span>
                         </div>
+
+                        <div style="font-size: 13px; color: #334155; font-weight: 600; margin-top: 6px;">
+                            Por: <span style="color: #0f172a; font-weight: 700;">${responsavelTexto}</span>
+                        </div>
+
+                        ${isAprovado && horasAprovadasVal !== undefined && horasAprovadasVal !== null ? `
+                            <div style="margin-top: 8px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #166534; font-weight: 700;">
+                                Horas Aprovadas: <span style="font-size: 15px; font-weight: 800;">${horasAprovadasVal}h</span>
+                            </div>
+                        ` : ''}
+
+                        ${isRejeitado && motivoRejeicaoVal ? `
+                            <div style="margin-top: 8px; background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #991b1b; line-height: 1.4;">
+                                <strong>Motivo da Rejeição:</strong> ${motivoRejeicaoVal}
+                            </div>
+                        ` : ''}
+
+                        ${!isAprovado && !isRejeitado && motivoRejeicaoVal ? `
+                            <div style="margin-top: 8px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #475569; line-height: 1.4;">
+                                <strong>Observação:</strong> ${motivoRejeicaoVal}
+                            </div>
+                        ` : ''}
                     </div>
-                    <span class="timeline-date" style="color: #94a3b8; font-size: 0.8125rem;">${formatarData(item.created_at)}</span>
                 </div>
             `;
         }).join('');
         return;
     }
 
+    // Fallback padrão se não houver histórico registrado
     container.innerHTML = `
-        <div class="timeline-item">
-            <div class="timeline-content">
-                <div class="timeline-dot"></div>
-                <div>
-                    <strong class="timeline-title" style="font-size: 0.95rem; color: #1e293b;">Solicitação Enviada</strong>
-                    <p class="timeline-sub" style="margin: 2px 0 0 0; color: #64748b; font-size: 0.875rem;">Solicitação registrada no sistema.</p>
+        <div style="display: flex; gap: 14px; border-left: 2px solid #e2e8f0; padding-left: 18px; position: relative;">
+            <div style="position: absolute; left: -7px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background-color: #0284c7; border: 2px solid #ffffff;"></div>
+            <div style="flex: 1;">
+                <span style="font-size: 12px; font-weight: 800; color: #0284c7; background-color: #e0f2fe; padding: 2px 10px; border-radius: 999px;">
+                    Solicitação criada pelo aluno
+                </span>
+                <span style="font-size: 12px; font-weight: 600; color: #94a3b8; float: right;">
+                    ${formatarDataHoraBR(solicitacao?.created_at || solicitacao?.createdAt)}
+                </span>
+                <div style="font-size: 13px; color: #334155; font-weight: 600; margin-top: 6px;">
+                    Por: <span style="color: #0f172a; font-weight: 700;">${solicitacao?.student?.name || solicitacao?.student_name || 'Aluno'}</span>
                 </div>
             </div>
-            <span class="timeline-date" style="color: #94a3b8; font-size: 0.8125rem;">${formatarData(solicitacao?.created_at || solicitacao?.createdAt)}</span>
         </div>
     `;
 }
 
-function formatarTituloStatus(statusRaw) {
-    const st = (statusRaw || '').toUpperCase();
-    switch (st) {
-        case 'APPROVED':
-            return 'Solicitação Aprovada';
-        case 'REJECTED':
-            return 'Solicitação Recusada';
-        case 'IN_REVIEW':
-            return 'Em Análise pelo Coordenador';
-        case 'CANCELED':
-            return 'Solicitação Cancelada';
-        case 'PENDING':
-            return 'Solicitação Enviada';
-        default:
-            return statusRaw ? `Status: ${statusRaw}` : 'Atualização de Status';
-    }
+function formatarDataHoraBR(dataIso) {
+    if (!dataIso) return '--';
+    const data = new Date(dataIso);
+    if (isNaN(data.getTime())) return dataIso;
+    return data.toLocaleDateString('pt-BR') + ' às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatarData(dataStr) {
