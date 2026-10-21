@@ -4,6 +4,7 @@ import {
     obterMinhasSolicitacoes, 
     obterTiposAtividades, 
     obterHistoricoSolicitacao, 
+    cancelarSolicitacao,
     abrirAnexo 
 } from '../../api.js';
 import { carregarDadosPerfil } from '../../utils/userprofile.js';
@@ -77,8 +78,9 @@ async function carregarDetalhes(id) {
             console.warn('Erro ao obter histórico da solicitação:', e);
         }
 
-        // Renderiza as informações na tela e o histórico detalhado
+        // Renderiza as informações na tela, gerencia botões e exibe o histórico detalhado
         preencherTela(solicitacao, mapaTipos, historico);
+        configurarBotaoCancelamento(solicitacao);
         renderizarHistorico(solicitacao, historico);
 
     } catch (error) {
@@ -198,6 +200,101 @@ function preencherTela(item, mapaTipos, historico = []) {
     }
 }
 
+// Configura dinamicamente a exibição do botão e do painel de confirmação inline em baixo
+function configurarBotaoCancelamento(solicitacao) {
+    const rawStatus = (solicitacao.status || 'PENDING').toUpperCase();
+    
+    // Tenta capturar o container de ações ou cria um
+    let containerWrapper = document.getElementById('container-btn-cancelar');
+    
+    if (rawStatus === 'PENDING') {
+        if (!containerWrapper) {
+            const containerAcoes = document.getElementById('detalhe-acoes') || document.querySelector('.card-footer') || document.querySelector('.ui-card');
+            
+            if (containerAcoes) {
+                containerWrapper = document.createElement('div');
+                containerWrapper.id = 'container-btn-cancelar';
+                containerWrapper.style.cssText = 'margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 16px;';
+                
+                containerWrapper.innerHTML = `
+                    <div id="painel-acao-cancelar" style="display: flex; justify-content: flex-end;">
+                        <button id="btn-cancelar-solicitacao" style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 10px 20px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
+                            <i data-lucide="x-circle" style="width: 18px; height: 18px;"></i>
+                            <span>Cancelar Solicitação</span>
+                        </button>
+                    </div>
+
+                    <!-- Caixa Inline de Confirmação (Oculta por padrão) -->
+                    <div id="box-confirmacao-cancelamento" style="display: none; background-color: #fff5f5; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin-top: 12px;">
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <i data-lucide="alert-triangle" style="width: 22px; height: 22px; color: #dc2626; flex-shrink: 0; margin-top: 2px;"></i>
+                            <div style="flex: 1;">
+                                <strong style="color: #991b1b; font-size: 14px; display: block; margin-bottom: 4px;">Confirmar cancelamento?</strong>
+                                <p style="color: #7f1d1d; font-size: 13px; margin: 0 0 12px 0; line-height: 1.4;">
+                                    Tem certeza de que deseja cancelar esta solicitação? Esta ação não poderá ser desfeita.
+                                </p>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button id="btn-desistir-cancelamento" style="background-color: #ffffff; color: #475569; border: 1px solid #cbd5e1; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">
+                                        Voltar
+                                    </button>
+                                    <button id="btn-confirmar-cancelamento-final" style="background-color: #dc2626; color: #ffffff; border: none; padding: 6px 16px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;">
+                                        Sim, cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                containerAcoes.appendChild(containerWrapper);
+            }
+        }
+
+        const btnAbrirConfirmacao = document.getElementById('btn-cancelar-solicitacao');
+        const painelAcao = document.getElementById('painel-acao-cancelar');
+        const boxConfirmacao = document.getElementById('box-confirmacao-cancelamento');
+        const btnDesistir = document.getElementById('btn-desistir-cancelamento');
+        const btnConfirmarFinal = document.getElementById('btn-confirmar-cancelamento-final');
+
+        if (btnAbrirConfirmacao && boxConfirmacao) {
+            // Exibe a caixa de confirmação embaixo ao clicar no botão
+            btnAbrirConfirmacao.onclick = () => {
+                painelAcao.style.display = 'none';
+                boxConfirmacao.style.display = 'block';
+                if (window.lucide) window.lucide.createIcons();
+            };
+
+            // Oculta a confirmação e volta ao botão original
+            btnDesistir.onclick = () => {
+                boxConfirmacao.style.display = 'none';
+                painelAcao.style.display = 'flex';
+            };
+
+            // Executa o cancelamento via API ao confirmar na caixa
+            btnConfirmarFinal.onclick = async () => {
+                btnConfirmarFinal.disabled = true;
+                btnConfirmarFinal.innerText = 'Cancelando...';
+
+                try {
+                    await cancelarSolicitacao(solicitacao.id);
+                    window.location.reload();
+                } catch (err) {
+                    console.error('Erro ao cancelar solicitação:', err);
+                    alert(err.message || 'Erro ao cancelar a solicitação.');
+                    btnConfirmarFinal.disabled = false;
+                    btnConfirmarFinal.innerText = 'Sim, cancelar';
+                }
+            };
+        }
+    } else if (containerWrapper) {
+        containerWrapper.style.display = 'none';
+    }
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
 // Extrai título, cor do badge e marcador circular dinâmico
 function extrairInfoHistorico(item) {
     const acao = String(item.action || item.type || item.event || '').toUpperCase();
@@ -224,6 +321,10 @@ function extrairInfoHistorico(item) {
         titulo = 'Solicitação rejeitada';
         iconeCor = '#dc2626';
         bgCor = '#fee2e2';
+    } else if (acao.includes('CANCEL') || stPara.includes('CANCELED')) {
+        titulo = 'Solicitação cancelada pelo aluno';
+        iconeCor = '#64748b';
+        bgCor = '#f1f5f9';
     } else if (stDe && stPara) {
         titulo = `Status alterado de ${stDe} para ${stPara}`;
     }
@@ -248,7 +349,7 @@ function extrairNomeResponsavel(item, solicitacao = null) {
     const acao = String(item.action || item.type || '').toUpperCase();
     const status = String(item.status_to || item.new_status || item.status || '').toUpperCase();
 
-    if (acao.includes('CREATE') || acao.includes('SUBMIT') || status === 'PENDING') {
+    if (acao.includes('CREATE') || acao.includes('SUBMIT') || acao.includes('CANCEL') || status === 'PENDING' || status === 'CANCELED') {
         return solicitacao?.student?.name || solicitacao?.student_name || 'Aluno';
     }
 
