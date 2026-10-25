@@ -1,4 +1,5 @@
-import { obterRelatorioAluno } from '../api.js';
+// userprofile.js
+import { obterRelatorioAluno, obterPerfilCoordenador } from '../api.js';
 
 // Busca as informações do aluno na API e preenche os elementos da tela
 export async function carregarDadosPerfil() {
@@ -13,7 +14,7 @@ export async function carregarDadosPerfil() {
     }
 }
 
-// Mapeia e preenche os elementos HTML presentes na página
+// Mapeia e preenche os elementos HTML presentes na página do aluno
 export function preencherCamposPerfil(student) {
     if (!student) return;
 
@@ -52,12 +53,65 @@ export function preencherCamposPerfil(student) {
     if (elSidebarUserRole) elSidebarUserRole.innerText = `Matrícula: ${matriculaUser}`;
     if (elSidebarAvatar) elSidebarAvatar.innerText = inicial;
 
-    // 5. Banner Escuro Central do Dashboard (Ajuste para sumir com "Carregando dados...")
+    // 5. Banner Escuro Central do Dashboard
     const elBannerFullName = document.getElementById('banner-user-fullname');
     const elBannerInfo = document.getElementById('banner-user-info');
     const elBannerAvatar = document.getElementById('banner-avatar');
 
     if (elBannerFullName) elBannerFullName.innerText = nomeCompleto;
     if (elBannerInfo) elBannerInfo.innerText = `Mat. ${matriculaUser} · Email: ${emailUser}`;
+    if (elBannerAvatar) elBannerAvatar.innerText = inicial;
+}
+
+// Busca as informações do coordenador na API
+export async function carregarDadosPerfilCoordenador() {
+    try {
+        const coordinator = await obterPerfilCoordenador();
+        
+        if (coordinator) {
+            preencherCamposCoordenador(coordinator);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar informações do perfil do coordenador:', error);
+    }
+}
+
+// Mapeia e preenche APENAS o nome do coordenador e inicial do avatar
+export function preencherCamposCoordenador(coordinator) {
+    if (!coordinator) return;
+
+    const nomeCompleto = coordinator.first_name + ' ' + coordinator.last_name || 'Coordenador';
+    const partesNome = nomeCompleto.trim().split(' ');
+    const primeiroNome = partesNome[0] || 'Coordenador';
+    
+    let inicial = primeiroNome.charAt(0).toUpperCase();
+    if (partesNome.length > 1) {
+        inicial += partesNome[partesNome.length - 1].charAt(0).toUpperCase();
+    }
+
+    // 1. Inputs de Formulários
+    const elInputNome = document.getElementById('coordinator_name') || document.getElementById('user-name');
+    if (elInputNome) elInputNome.value = nomeCompleto;
+
+    // 2. Saudação Superior
+    const elHeaderFirstName = document.getElementById('header-user-firstname');
+    if (elHeaderFirstName) elHeaderFirstName.innerText = primeiroNome;
+
+    // 3. Header e Avatares (dashboards.html)
+    const elTopUserName = document.getElementById('top-user-name');
+    const elTopAvatar = document.getElementById('top-avatar');
+    if (elTopUserName) elTopUserName.innerText = nomeCompleto;
+    if (elTopAvatar) elTopAvatar.innerText = inicial;
+
+    // 4. Sidebar Lateral (dashboards.html)
+    const elSidebarUserName = document.getElementById('sidebar-user-name');
+    const elSidebarAvatar = document.getElementById('sidebar-avatar');
+    if (elSidebarUserName) elSidebarUserName.innerText = nomeCompleto;
+    if (elSidebarAvatar) elSidebarAvatar.innerText = inicial;
+
+    // 5. Banner Central (dashboards.html)
+    const elBannerFullName = document.getElementById('banner-user-fullname');
+    const elBannerAvatar = document.getElementById('banner-avatar');
+    if (elBannerFullName) elBannerFullName.innerText = nomeCompleto;
     if (elBannerAvatar) elBannerAvatar.innerText = inicial;
 }

@@ -67,10 +67,16 @@ const ROTAS_PERMITIDAS = {
     'detalhes-solicitacao.html',
     'nova-solicitacao.html',
     'solicitacoes.html',
-    'tipos-de-atividades.html'
+    'tipos-de-atividades.html',
+    'perfil-aluno.html'
   ],
   coordenador: [
-    'dashboards.html' // Corrigido para "dashboards.html" conforme a pasta do projeto
+    'dashboards.html',
+    'solicitacoes-alunos.html',
+    'detalhes-solicitacao-aluno.html',
+    'perfil-coordenador.html',
+    'alunos.html',
+    'relatorios.html'
   ]
 };
 

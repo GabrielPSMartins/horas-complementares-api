@@ -9,6 +9,7 @@ from app.models.activity_request import ActivityRequestStatus
 class ActivityRequestHistoryResponse(BaseModel):
     id: uuid.UUID
     changed_by_id: uuid.UUID | None
+    changed_by_name: str | None
     previous_status: ActivityRequestStatus | None
     new_status: ActivityRequestStatus | None
     previous_accepted_hours: int | None

@@ -59,3 +59,7 @@ class ActivityRequestHistory(Base):
         "User",
         back_populates="activity_request_history_items",
     )
+
+    @property
+    def changed_by_name(self) -> str | None:
+        return self.changed_by.display_name if self.changed_by else None

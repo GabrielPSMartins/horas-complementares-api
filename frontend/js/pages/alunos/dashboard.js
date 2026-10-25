@@ -1,5 +1,5 @@
 import { protegerRota } from '../../auth.js';
-import { obterRelatorioAluno, obterMinhasSolicitacoes } from '../../api.js';
+import { obterRelatorioAluno, obterMinhasSolicitacoes, exportarRelatorioPdf } from '../../api.js';
 import { preencherCamposPerfil } from '../../utils/userprofile.js';
 
 // Garante a proteção da rota antes de carregar o restante
@@ -7,7 +7,40 @@ protegerRota();
 
 document.addEventListener('DOMContentLoaded', () => {
     carregarDadosDashboard();
+
+    // Evento para o botão de exportar relatório
+    const btnExport = document.getElementById('btn-export');
+    if (btnExport) {
+        btnExport.addEventListener('click', tratarExportacaoPdf);
+    }
 });
+
+async function tratarExportacaoPdf() {
+    const btnExport = document.getElementById('btn-export');
+    if (!btnExport) return;
+
+    const conteudoOriginal = btnExport.innerHTML;
+
+    try {
+        btnExport.disabled = true;
+        btnExport.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Gerando PDF...`;
+        if (window.lucide) window.lucide.createIcons();
+
+        await exportarRelatorioPdf();
+
+    } catch (error) {
+        console.error('Erro ao exportar PDF:', error);
+        if (error.message === 'UNAUTHORIZED') {
+            window.location.href = '../../index.html';
+        } else {
+            alert(error.message || 'Não foi possível baixar o relatório. Tente novamente.');
+        }
+    } finally {
+        btnExport.disabled = false;
+        btnExport.innerHTML = conteudoOriginal;
+        if (window.lucide) window.lucide.createIcons();
+    }
+}
 
 async function carregarDadosDashboard() {
     try {
@@ -145,7 +178,7 @@ function preencherTabelaSolicitacoes(requests) {
         const horas = item.hours || item.requested_hours || item.horas || 0;
 
         return `
-            <tr style="cursor: pointer;" onclick="window.location.href='detalhes-solicitacao.html?id=${id}'">
+            <tr>
                 <td>
                     <strong style="color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 250px; display: block;">
                         ${titulo}
@@ -156,8 +189,13 @@ function preencherTabelaSolicitacoes(requests) {
                 <td style="color: var(--text-secondary);">${dataFormatada}</td>
                 <td>
                     <span class="status-badge ${statusInfo.badgeClass}">
-                        ${statusInfo.text}
+                       • ${statusInfo.text}
                     </span>
+                </td>
+                <td style="text-align: center;">
+                    <a href="detalhes-solicitacao.html?id=${id}" title="Ver Detalhes da Solicitação" style="color: var(--brand-blue, #0284c7); font-weight: 600;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="eye" aria-hidden="true" style="width: 18px; height: 18px;" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </a>
                 </td>
             </tr>
         `;
@@ -176,7 +214,6 @@ function renderizarGraficoEvolucao(approvedHoursList) {
     const canvas = document.getElementById('evolutionChart');
     if (!canvas) return;
 
-    // Destrói a instância anterior caso a função seja chamada novamente
     if (evolutionChartInstance) {
         evolutionChartInstance.destroy();
     }

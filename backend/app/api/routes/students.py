@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,12 +13,25 @@ from app.schemas.activity_report import ActivityReportResponse
 from app.schemas.hours_summary import HoursSummaryResponse
 from app.schemas.student import StudentCreateRequest, StudentCreateResponse
 from app.services.hours_service import HoursService
+from app.services.report_pdf_service import build_report_pdf
 from app.services.student_registration_service import (
     StudentRegistrationError,
     StudentRegistrationService,
 )
 
 router = APIRouter(prefix="/students", tags=["students"])
+
+
+def _pdf_response(pdf_bytes: bytes, registration_number: str) -> Response:
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="relatorio-horas-{registration_number}.pdf"'
+            )
+        },
+    )
 
 
 @router.post(
@@ -37,7 +50,8 @@ def create_student(
 
     try:
         student = service.register(
-            name=payload.name,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
             email=payload.email,
             cpf=payload.cpf,
             registration_number=payload.registration_number,
@@ -56,7 +70,9 @@ def create_student(
     return StudentCreateResponse(
         id=student.id,
         user_id=student.user_id,
-        name=student.name,
+        first_name=student.first_name,
+        last_name=student.last_name,
+        full_name=student.full_name,
         email=payload.email,
         cpf=student.cpf,
         registration_number=student.registration_number,
@@ -142,6 +158,42 @@ def get_my_report(
     return ActivityReportResponse(**report)
 
 
+@router.get("/me/report/pdf", response_class=Response)
+def export_my_report_pdf(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Response:
+    if current_user.role != UserRole.STUDENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas alunos podem exportar o próprio relatório.",
+        )
+
+    student = db.scalar(
+        select(Student).where(Student.user_id == current_user.id)
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Perfil de aluno não encontrado.",
+        )
+
+    course = db.scalar(
+        select(Course).where(Course.id == student.course_id)
+    )
+
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Curso do aluno não encontrado.",
+        )
+
+    report = HoursService(db).build_report(student, course)
+
+    return _pdf_response(build_report_pdf(report), student.registration_number)
+
+
 @router.get("/{student_id}/report", response_model=ActivityReportResponse)
 def get_student_report(
     student_id: uuid.UUID,
@@ -184,3 +236,40 @@ def get_student_report(
     report = hours_service.build_report(student, course)
 
     return ActivityReportResponse(**report)
+
+
+@router.get("/{student_id}/report/pdf", response_class=Response)
+def export_student_report_pdf(
+    student_id: uuid.UUID,
+    current_user: User = Depends(require_roles(UserRole.COORDINATOR)),
+    db: Session = Depends(get_db),
+) -> Response:
+    student = db.scalar(
+        select(Student).where(Student.id == student_id)
+    )
+
+    if not student:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aluno não encontrado.",
+        )
+
+    course = db.scalar(
+        select(Course).where(Course.id == student.course_id)
+    )
+
+    if not course:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Curso do aluno não encontrado.",
+        )
+
+    if course.coordinator_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não possui permissão para exportar o relatório deste aluno.",
+        )
+
+    report = HoursService(db).build_report(student, course)
+
+    return _pdf_response(build_report_pdf(report), student.registration_number)

@@ -1,14 +1,20 @@
 import { protegerRota } from '../../auth.js';
 import { obterSolicitacoesCoordenador } from '../../api.js';
+import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
 
 let chartStatusInstance = null;
 let chartCategoriasInstance = null;
 let mapaTiposGlobal = null;
 let todasSolicitacoesCache = null;
 
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDadosPerfilCoordenador();
+});
+
 document.addEventListener('DOMContentLoaded', async () => {
     protegerRota();
     configurarFiltrosSemestre();
+    
     await atualizarDashboard('todos');
 });
 
@@ -17,6 +23,8 @@ function configurarFiltrosSemestre() {
 
     botoes.forEach(btn => {
         btn.addEventListener('click', async (e) => {
+            if (e.currentTarget.disabled) return;
+
             const botaoClicado = e.currentTarget;
 
             botoes.forEach(b => b.classList.remove('active'));
@@ -25,6 +33,33 @@ function configurarFiltrosSemestre() {
             const semestre = botaoClicado.getAttribute('data-semestre');
             await atualizarDashboard(semestre);
         });
+    });
+}
+
+function atualizarBotoesSemestreDisponiveis(solicitacoes) {
+    const semestresDisponiveis = new Set();
+
+    solicitacoes.forEach(item => {
+        if (item.semestre_real !== undefined && item.semestre_real !== null) {
+            const semNum = String(item.semestre_real).replace(/[^0-9]/g, '');
+            if (semNum) semestresDisponiveis.add(semNum);
+        }
+    });
+
+    const botoes = document.querySelectorAll('.btn-semester');
+    botoes.forEach(btn => {
+        const semAttr = btn.getAttribute('data-semestre');
+        if (semAttr === 'todos') {
+            btn.disabled = false;
+        } else {
+            const existe = semestresDisponiveis.has(String(semAttr));
+            btn.disabled = !existe;
+            if (!existe) {
+                btn.title = "Nenhuma solicitação encontrada para este semestre";
+            } else {
+                btn.removeAttribute('title');
+            }
+        }
     });
 }
 
@@ -67,6 +102,8 @@ async function atualizarDashboard(semestre = 'todos') {
     try {
         const tiposMap = await obterMapaTiposAtividade();
         const todasSolicitacoes = await carregarTodasSolicitacoes();
+
+        atualizarBotoesSemestreDisponiveis(todasSolicitacoes);
 
         let solicitacoesFiltradas = todasSolicitacoes;
 
@@ -179,9 +216,11 @@ function renderizarSolicitacoesPendentes(solicitacoes, container, tiposMap) {
         const semestreVal = item.semestre_real;
         const semestreHTML = semestreVal ? `<span class="status-badge badge-formacao" style="font-size: 0.7rem; padding: 2px 8px;">${semestreVal}º sem.</span>` : '';
         
-        const nomeTipoAtividade = tiposMap?.get(item.activity_type_id) 
-            || item.title 
-            || 'Atividade Complementar';
+        const typeId = item.activity_type_id || item.activity_type?.id;
+        const nomeTipoAtividade = (typeId ? tiposMap?.get(String(typeId)) : null)
+            || item.activity_type?.name 
+            || item.activity_type_name
+            || 'Tipo Não Identificado';
         
         const horas = item.requested_hours ?? 0;
         const id = item.id;
@@ -199,7 +238,7 @@ function renderizarSolicitacoesPendentes(solicitacoes, container, tiposMap) {
                         <p class="stat-sub" style="margin-top: 2px; font-size: 0.8rem; color: #64748b;">${nomeTipoAtividade} · ${horas}h</p>
                     </div>
                 </div>
-                <a href="solicitacoes.html?id=${id}" class="btn-analys">Analisar</a>
+                <a href="detalhes-solicitacao-aluno.html?id=${id}" class="btn-analys">Analisar</a>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', itemHTML);
@@ -289,9 +328,11 @@ function renderizarGraficoCategorias(solicitacoes, tiposMap) {
     const categoriasCount = {};
 
     solicitacoes.forEach(item => {
-        const nomeTipo = tiposMap?.get(item.activity_type_id) 
-            || item.title 
-            || 'Geral';
+        const typeId = item.activity_type_id || item.activity_type?.id;
+        const nomeTipo = (typeId ? tiposMap?.get(String(typeId)) : null)
+            || item.activity_type?.name 
+            || item.activity_type_name
+            || 'Não Identificado';
             
         categoriasCount[nomeTipo] = (categoriasCount[nomeTipo] || 0) + 1;
     });
@@ -332,14 +373,31 @@ async function obterMapaTiposAtividade() {
     try {
         const apiModule = await import('../../api.js');
         let tiposData = null;
-        if (typeof apiModule.obterTiposAtividade === 'function') {
+
+        if (typeof apiModule.obterTiposAtividades === 'function') {
+            tiposData = await apiModule.obterTiposAtividades();
+        } else if (typeof apiModule.obterTiposAtividade === 'function') {
             tiposData = await apiModule.obterTiposAtividade();
         } else if (typeof apiModule.listarTiposAtividade === 'function') {
             tiposData = await apiModule.listarTiposAtividade();
+        } else {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const res = await fetch('/activity-types/', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) tiposData = await res.json();
         }
+
         const lista = Array.isArray(tiposData) ? tiposData : (tiposData?.items || tiposData?.data || []);
-        lista.forEach(t => mapa.set(t.id, t.name || t.nome || t.title));
+        lista.forEach(t => {
+            const nomeAtividade = t.name || t.nome || t.title || t.description;
+            if (t.id !== undefined && t.id !== null) {
+                mapa.set(String(t.id), nomeAtividade);
+            }
+        });
         mapaTiposGlobal = mapa;
-    } catch (e) {}
+    } catch (e) {
+        console.error("Erro ao obter mapa de tipos de atividade:", e);
+    }
     return mapa;
 }
