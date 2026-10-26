@@ -1,6 +1,6 @@
 import { protegerRota } from '../../auth.js';
 import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
-import { obterSolicitacoesCoordenador } from '../../api.js';
+import { obterTodasSolicitacoesCoordenador } from '../../api.js';
 
 protegerRota();
 
@@ -35,17 +35,7 @@ async function carregarAlunos() {
     }
 
     try {
-        let resData = null;
-
-        // Tentativa com os parâmetros aceitos pelo backend (limite máximo 100)
-        try {
-            resData = await obterSolicitacoesCoordenador({ limit: 100, page_size: 100 });
-        } catch (e) {
-            console.warn('Falha na requisição com parâmetros de limite. Tentando chamada simples...', e);
-            resData = await obterSolicitacoesCoordenador();
-        }
-
-        const listaSolicitacoes = Array.isArray(resData) ? resData : (resData?.items || resData?.data || []);
+        const listaSolicitacoes = await obterTodasSolicitacoesCoordenador();
 
         // Agrupa os alunos e calcula as horas exatas conforme dashboards_2.js
         listaCompletaAlunos = processarEAgruparAlunos(listaSolicitacoes);

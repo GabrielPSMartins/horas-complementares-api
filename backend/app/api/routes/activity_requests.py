@@ -41,6 +41,15 @@ from app.services.storage import (
 router = APIRouter(prefix="/activity-requests", tags=["activity-requests"])
 
 
+def _to_coordinator_response(item: ActivityRequest) -> ActivityRequestCoordinatorResponse:
+    return ActivityRequestCoordinatorResponse(
+        **ActivityRequestResponse.model_validate(item).model_dump(),
+        student_name=item.student.full_name,
+        student_registration_number=item.student.registration_number,
+        student_semester=item.student.current_semester,
+    )
+
+
 @router.get("/me", response_model=PaginatedResponse[ActivityRequestResponse])
 def list_my_activity_requests(
     status_filter: ActivityRequestStatus | None = Query(default=None, alias="status"),
@@ -141,15 +150,7 @@ def list_coordinator_activity_requests(
         page_size=page_size,
     )
 
-    response_items = [
-        ActivityRequestCoordinatorResponse(
-            **ActivityRequestResponse.model_validate(item).model_dump(),
-            student_name=item.student.full_name,
-            student_registration_number=item.student.registration_number,
-            student_semester=item.student.current_semester,
-        )
-        for item in items
-    ]
+    response_items = [_to_coordinator_response(item) for item in items]
 
     return PaginatedResponse(
         items=response_items,
@@ -296,6 +297,44 @@ def create_activity_request(
         )
 
     return created_request
+
+
+@router.get(
+    "/{activity_request_id}",
+    response_model=ActivityRequestCoordinatorResponse | ActivityRequestResponse,
+)
+def get_activity_request(
+    activity_request_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ActivityRequestCoordinatorResponse | ActivityRequestResponse:
+    activity_request = ActivityRequestQueryService(db).get_by_id(activity_request_id)
+
+    if activity_request is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Solicitação não encontrada.",
+        )
+
+    is_owner_student = (
+        current_user.role == UserRole.STUDENT
+        and activity_request.student.user_id == current_user.id
+    )
+    is_course_coordinator = (
+        current_user.role == UserRole.COORDINATOR
+        and activity_request.student.course.coordinator_id == current_user.id
+    )
+
+    if is_course_coordinator:
+        return _to_coordinator_response(activity_request)
+
+    if is_owner_student:
+        return ActivityRequestResponse.model_validate(activity_request)
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Você não possui permissão para ver esta solicitação.",
+    )
 
 
 @router.get(

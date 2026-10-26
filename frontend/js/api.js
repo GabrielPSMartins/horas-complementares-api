@@ -189,13 +189,35 @@ export async function obterSolicitacoesCoordenador(params = {}) {
     return await response.json();
 }
 
-// Busca uma solicitação específica por ID navegando nas solicitações do coordenador
+// Busca todas as solicitações do coordenador percorrendo as páginas da API (page_size máximo: 100)
+export async function obterTodasSolicitacoesCoordenador(params = {}) {
+    const todas = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+        const res = await obterSolicitacoesCoordenador({ ...params, page, page_size: 100 });
+        todas.push(...(res.items || []));
+        totalPages = res.total_pages || 1;
+        page++;
+    } while (page <= totalPages);
+
+    return todas;
+}
+
+// Busca uma solicitação específica por ID (/activity-requests/{id}), para o aluno dono ou o coordenador do curso
 export async function obterSolicitacaoPorId(id) {
-    const res = await obterSolicitacoesCoordenador({ limit: 300 });
-    const lista = Array.isArray(res) ? res : (res?.items || res?.data || []);
-    const item = lista.find(s => String(s.id) === String(id));
-    if (!item) throw new Error('Solicitação não encontrada');
-    return item;
+    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}`, {
+        headers: getHeaders()
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Solicitação não encontrada');
+    }
+
+    return await response.json();
 }
 
 // Busca o histórico de alterações da solicitação (/activity-requests/{id}/history)

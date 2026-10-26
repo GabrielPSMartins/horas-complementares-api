@@ -1,5 +1,5 @@
 import { protegerRota } from '../../auth.js';
-import { obterSolicitacoesCoordenador } from '../../api.js';
+import { obterTodasSolicitacoesCoordenador } from '../../api.js';
 import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
 
 let chartStatusInstance = null;
@@ -67,8 +67,7 @@ async function carregarTodasSolicitacoes() {
     if (todasSolicitacoesCache) return todasSolicitacoesCache;
 
     try {
-        const resData = await obterSolicitacoesCoordenador({ limit: 100, page_size: 100 });
-        let lista = Array.isArray(resData) ? resData : (resData?.items || resData?.data || []);
+        const lista = await obterTodasSolicitacoesCoordenador();
 
         const solicitacoesCompletas = lista.map(item => {
             const semestreEncontrado = item.student?.current_semester 
