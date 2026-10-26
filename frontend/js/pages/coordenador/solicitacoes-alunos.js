@@ -1,8 +1,7 @@
 import { protegerRota } from '../../auth.js';
 import { 
-    obterSolicitacoesCoordenador, 
+    obterTodasSolicitacoesCoordenador, 
     obterTiposAtividades, 
-    obterHistoricoSolicitacao, 
     obterPerfilCoordenador,
     obterRelatorioCoordenador 
 } from '../../api.js';
@@ -18,7 +17,6 @@ let solicitacoesFiltradas = [];
 let paginaAtual = 1;
 const itensPorPagina = 4;
 let mapaTiposAtividade = new Map();
-let mapaNomesResponsaveis = new Map();
 
 let idCoordenadorLogado = null;
 let nomeCoordenadorLogado = '';
@@ -181,11 +179,9 @@ async function carregarDados() {
             carregarOpcoesAtividades()
         ]);
 
-        const resData = await obterSolicitacoesCoordenador({ limit: 200 });
-        todasSolicitacoes = Array.isArray(resData) ? resData : (resData?.items || resData?.data || []);
+        todasSolicitacoes = await obterTodasSolicitacoesCoordenador();
 
         atualizarBotoesSemestreDisponiveis();
-        await carregarHistoricoResponsaveis();
 
         aplicarFiltrosEAtualizar();
     } catch (err) {
@@ -200,46 +196,6 @@ async function carregarDados() {
             `;
         }
     }
-}
-
-async function carregarHistoricoResponsaveis() {
-    mapaNomesResponsaveis.clear();
-
-    const emAnaliseOuConcluidos = todasSolicitacoes.filter(item => 
-        item.status && item.status.toUpperCase() !== 'PENDING'
-    );
-
-    const promessas = emAnaliseOuConcluidos.map(async (item) => {
-        try {
-            if (item.reviewed_by_name || item.reviewer_name) {
-                mapaNomesResponsaveis.set(String(item.id), item.reviewed_by_name || item.reviewer_name);
-                return;
-            }
-
-            const resHist = await obterHistoricoSolicitacao(item.id);
-            const historico = Array.isArray(resHist) ? resHist : (resHist?.items || resHist?.data || []);
-
-            const eventoAssumiu = historico.find(h => 
-                h.new_status === 'IN_REVIEW' || h.new_status === 'APPROVED' || h.new_status === 'REJECTED'
-            );
-
-            if (eventoAssumiu) {
-                const nomeNoHistorico = eventoAssumiu.changed_by_name 
-                    || eventoAssumiu.user_name 
-                    || eventoAssumiu.changed_by?.name;
-
-                if (nomeNoHistorico) {
-                    mapaNomesResponsaveis.set(String(item.id), nomeNoHistorico);
-                } else if (eventoAssumiu.changed_by_id && String(eventoAssumiu.changed_by_id) === String(idCoordenadorLogado)) {
-                    mapaNomesResponsaveis.set(String(item.id), nomeCoordenadorLogado);
-                }
-            }
-        } catch (e) {
-            console.warn(`Erro ao carregar histórico para solicitação ${item.id}:`, e);
-        }
-    });
-
-    await Promise.all(promessas);
 }
 
 async function carregarOpcoesAtividades() {
@@ -374,9 +330,8 @@ function criarLinhaTabela(item) {
 
     let responsavel = '-';
     if (statusUpper !== 'PENDING') {
-        responsavel = mapaNomesResponsaveis.get(idStr) 
-            || item.reviewed_by_name 
-            || item.reviewer_name 
+        responsavel = item.reviewed_by_name 
+            || item.in_review_by_name 
             || nomeCoordenadorLogado 
             || 'Coordenador';
     }
