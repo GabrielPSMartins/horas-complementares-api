@@ -131,6 +131,18 @@ class ActivityRequestQueryService:
 
         return items, total
 
+    def get_by_id(self, activity_request_id: uuid.UUID) -> ActivityRequest | None:
+        return self.db.scalar(
+            select(ActivityRequest)
+            .options(
+                selectinload(ActivityRequest.attachments),
+                selectinload(ActivityRequest.student).selectinload(Student.course),
+                selectinload(ActivityRequest.in_review_by).selectinload(User.coordinator_profile),
+                selectinload(ActivityRequest.reviewer).selectinload(User.coordinator_profile),
+            )
+            .where(ActivityRequest.id == activity_request_id)
+        )
+
     @staticmethod
     def get_student_by_user_id(db: Session, user_id: uuid.UUID) -> Student | None:
         return db.scalar(select(Student).where(Student.user_id == user_id))

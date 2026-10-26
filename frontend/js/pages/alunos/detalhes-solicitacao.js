@@ -1,7 +1,6 @@
 import { protegerRota } from '../../auth.js';
 import { 
     obterSolicitacaoPorId, 
-    obterMinhasSolicitacoes, 
     obterTiposAtividades, 
     obterHistoricoSolicitacao, 
     cancelarSolicitacao,
@@ -32,22 +31,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function carregarDetalhes(id) {
     try {
-        // Tenta obter a solicitação específica por ID; se falhar, busca na lista geral do aluno
         let solicitacao = null;
         try {
-            if (typeof obterSolicitacaoPorId === 'function') {
-                solicitacao = await obterSolicitacaoPorId(id);
-            }
+            solicitacao = await obterSolicitacaoPorId(id);
         } catch (e) {
-            console.warn('Erro ao obter por ID direto, buscando na lista do aluno:', e);
-        }
-
-        if (!solicitacao) {
-            const dados = await obterMinhasSolicitacoes({});
-            const lista = Array.isArray(dados) 
-                ? dados 
-                : (dados.data || dados.items || dados.solicitacoes || []);
-            solicitacao = lista.find(item => String(item.id || item._id) === String(id));
+            if (e.message === 'UNAUTHORIZED') throw e;
+            console.warn('Erro ao obter solicitação por ID:', e);
         }
 
         if (!solicitacao) {
