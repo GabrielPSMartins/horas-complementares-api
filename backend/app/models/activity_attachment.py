@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 
 
 class ActivityAttachment(Base):
@@ -21,6 +21,7 @@ class ActivityAttachment(Base):
         UUID(as_uuid=True),
         ForeignKey("activity_requests.id"),
         nullable=False,
+        index=True,
     )
 
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -31,7 +32,7 @@ class ActivityAttachment(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now,
     )
 
     activity_request = relationship(

@@ -5,7 +5,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 from app.models.activity_request import ActivityRequestStatus
 
 
@@ -22,6 +22,7 @@ class ActivityRequestHistory(Base):
         UUID(as_uuid=True),
         ForeignKey("activity_requests.id"),
         nullable=False,
+        index=True,
     )
 
     changed_by_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -47,7 +48,7 @@ class ActivityRequestHistory(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now,
     )
 
     activity_request = relationship(

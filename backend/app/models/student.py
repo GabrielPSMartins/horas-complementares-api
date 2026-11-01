@@ -5,15 +5,16 @@ from sqlalchemy import Boolean, CheckConstraint, Date, DateTime, ForeignKey, Int
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 
 
 class Student(Base):
     __tablename__ = "students"
     __table_args__ = (
+        # O teto depende do curso (Course.total_semesters) e é validado no cadastro.
         CheckConstraint(
-            "current_semester >= 1 AND current_semester <= 8",
-            name="ck_students_current_semester_range",
+            "current_semester >= 1",
+            name="ck_students_current_semester_positive",
         ),
     )
 
@@ -33,6 +34,7 @@ class Student(Base):
         UUID(as_uuid=True),
         ForeignKey("courses.id"),
         nullable=False,
+        index=True,
     )
 
     first_name: Mapped[str] = mapped_column(String(120), nullable=False)
@@ -50,13 +52,13 @@ class Student(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     user = relationship(
@@ -77,3 +79,11 @@ class Student(Base):
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def email(self) -> str:
+        return self.user.email
+
+    @property
+    def username(self) -> str:
+        return self.user.username
