@@ -1,6 +1,6 @@
 import { protegerRota } from '../../auth.js';
 import { 
-    obterSolicitacoesCoordenador, 
+    obterTodasSolicitacoesCoordenador, 
     obterTiposAtividades, 
     obterRelatorioAlunoPorId,
     exportarRelatorioPdfAlunoPorId
@@ -97,8 +97,7 @@ async function carregarDadosIniciais() {
     try {
         await carregarMapaTiposAtividade();
 
-        const resData = await obterSolicitacoesCoordenador({ limit: 300 });
-        todasSolicitacoesGlobal = Array.isArray(resData) ? resData : (resData?.items || resData?.data || []);
+        todasSolicitacoesGlobal = await obterTodasSolicitacoesCoordenador();
 
         extrairListaUnicaAlunos();
         atualizarBotoesSemestreDisponiveis();
