@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import get_current_user
+from app.api.responses import error_responses
 from app.db.dependencies import get_db
 from app.models.activity_type import ActivityType
 from app.models.course import Course
@@ -16,7 +17,12 @@ from app.schemas.activity_type import ActivityTypeResponse
 router = APIRouter(prefix="/activity-types", tags=["activity-types"])
 
 
-@router.get("", response_model=list[ActivityTypeResponse])
+@router.get(
+    "",
+    response_model=list[ActivityTypeResponse],
+    summary="Lista os tipos de atividade ativos do curso do usuário",
+    responses=error_responses(401, 403, 404),
+)
 def list_activity_types(
     course_id: uuid.UUID | None = Query(default=None),
     current_user: User = Depends(get_current_user),

@@ -2,11 +2,11 @@ import enum
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 
 
 class ActivityRequestStatus(str, enum.Enum):
@@ -19,6 +19,10 @@ class ActivityRequestStatus(str, enum.Enum):
 
 class ActivityRequest(Base):
     __tablename__ = "activity_requests"
+    __table_args__ = (
+        # Atende as consultas por aluno (listagem, horas aprovadas, contagem por status).
+        Index("ix_activity_requests_student_id_status", "student_id", "status"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -35,6 +39,7 @@ class ActivityRequest(Base):
         UUID(as_uuid=True),
         ForeignKey("activity_types.id"),
         nullable=False,
+        index=True,
     )
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -76,13 +81,13 @@ class ActivityRequest(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     student = relationship(

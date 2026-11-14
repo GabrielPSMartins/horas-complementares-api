@@ -1,16 +1,18 @@
 import uuid
 from datetime import date
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile, status
+from pydantic import StringConstraints
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.dependencies.auth import get_current_user
+from app.api.dependencies.auth import get_current_user, require_roles
+from app.api.dependencies.profiles import get_coordinator_course, get_current_student
+from app.api.responses import error_responses
+from app.core.exceptions import NotFoundError
 from app.db.dependencies import get_db
-from app.models.activity_attachment import ActivityAttachment
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.activity_request_history import ActivityRequestHistory
-from app.models.activity_type import ActivityType
 from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
@@ -22,23 +24,26 @@ from app.schemas.activity_request import (
 from app.schemas.activity_request_history import ActivityRequestHistoryResponse
 from app.schemas.activity_review import ActivityReviewRequest, ActivityReviewResponse
 from app.schemas.pagination import PaginatedResponse
-from app.services.activity_request_action_service import (
-    ActivityRequestActionError,
-    ActivityRequestActionService,
-)
-from app.services.activity_request_history_service import ActivityRequestHistoryService
+from app.services.activity_request_action_service import ActivityRequestActionService
+from app.services.activity_request_creation_service import ActivityRequestCreationService
 from app.services.activity_request_query_service import ActivityRequestQueryService
-from app.services.activity_review_service import ActivityReviewError, ActivityReviewService
-from app.services.hours_service import HoursService
+from app.services.activity_review_service import ActivityReviewService
 from app.services.storage import (
     DOWNLOAD_URL_EXPIRES_SECONDS,
-    InvalidFileError,
     MinioStorageService,
-    StorageError,
     get_storage_service,
 )
 
-router = APIRouter(prefix="/activity-requests", tags=["activity-requests"])
+router = APIRouter(
+    prefix="/activity-requests",
+    tags=["activity-requests"],
+    responses=error_responses(401, 403),
+)
+
+# Textos do formulário de envio: espaços nas pontas são removidos antes de validar o tamanho.
+Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=255)]
+Location = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=255)]
+Description = Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)]
 
 
 def _to_coordinator_response(item: ActivityRequest) -> ActivityRequestCoordinatorResponse:
@@ -50,7 +55,12 @@ def _to_coordinator_response(item: ActivityRequest) -> ActivityRequestCoordinato
     )
 
 
-@router.get("/me", response_model=PaginatedResponse[ActivityRequestResponse])
+@router.get(
+    "/me",
+    response_model=PaginatedResponse[ActivityRequestResponse],
+    summary="Lista as solicitações do aluno logado",
+    responses=error_responses(404),
+)
 def list_my_activity_requests(
     status_filter: ActivityRequestStatus | None = Query(default=None, alias="status"),
     activity_type_id: uuid.UUID | None = Query(default=None),
@@ -58,24 +68,10 @@ def list_my_activity_requests(
     end_date: date | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
+    student: Student = Depends(get_current_student),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[ActivityRequestResponse]:
-    if current_user.role != UserRole.STUDENT:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas alunos podem acessar suas próprias solicitações.",
-        )
-
     query_service = ActivityRequestQueryService(db)
-
-    student = query_service.get_student_by_user_id(db, current_user.id)
-
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Perfil de aluno não encontrado.",
-        )
 
     items, total = query_service.list_by_student(
         student_id=student.id,
@@ -99,6 +95,8 @@ def list_my_activity_requests(
 @router.get(
     "/coordinator",
     response_model=PaginatedResponse[ActivityRequestCoordinatorResponse],
+    summary="Lista as solicitações dos alunos do curso do coordenador",
+    responses=error_responses(404),
 )
 def list_coordinator_activity_requests(
     status_filter: ActivityRequestStatus | None = Query(default=None, alias="status"),
@@ -112,30 +110,13 @@ def list_coordinator_activity_requests(
     semester: int | None = Query(
         default=None,
         ge=1,
-        le=8,
         description="Filtra solicitações por semestre atual do aluno",
     ),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
-    current_user: User = Depends(get_current_user),
+    course: Course = Depends(get_coordinator_course),
     db: Session = Depends(get_db),
 ) -> PaginatedResponse[ActivityRequestCoordinatorResponse]:
-    if current_user.role != UserRole.COORDINATOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas coordenadores podem acessar esta listagem.",
-        )
-
-    course = db.scalar(
-        select(Course).where(Course.coordinator_id == current_user.id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhum curso vinculado a este coordenador.",
-        )
-
     query_service = ActivityRequestQueryService(db)
 
     items, total = query_service.list_by_coordinator_course(
@@ -150,10 +131,8 @@ def list_coordinator_activity_requests(
         page_size=page_size,
     )
 
-    response_items = [_to_coordinator_response(item) for item in items]
-
     return PaginatedResponse(
-        items=response_items,
+        items=[_to_coordinator_response(item) for item in items],
         total=total,
         page=page,
         page_size=page_size,
@@ -161,225 +140,83 @@ def list_coordinator_activity_requests(
     )
 
 
-@router.post("", response_model=ActivityRequestResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ActivityRequestResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Envia uma nova solicitação com o certificado (aluno)",
+    responses=error_responses(404, 422, 503),
+)
 def create_activity_request(
-    activity_type_id: uuid.UUID = Form(...),
-    title: str = Form(...),
-    requested_hours: int = Form(...),
-    location: str = Form(...),
-    activity_date: date = Form(...),
-    description: str | None = Form(default=None),
-    file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    activity_type_id: Annotated[uuid.UUID, Form()],
+    title: Annotated[Title, Form()],
+    requested_hours: Annotated[int, Form(le=1000)],
+    location: Annotated[Location, Form()],
+    activity_date: Annotated[date, Form()],
+    description: Annotated[Description | None, Form()] = None,
+    file: Annotated[UploadFile | None, File()] = None,
+    student: Student = Depends(get_current_student),
     db: Session = Depends(get_db),
     storage_service: MinioStorageService = Depends(get_storage_service),
 ) -> ActivityRequest:
-    if current_user.role != UserRole.STUDENT:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas alunos podem criar solicitações de atividade.",
-        )
-
-    if requested_hours <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A quantidade de horas deve ser maior que zero.",
-        )
-
-    student = db.scalar(
-        select(Student).where(Student.user_id == current_user.id)
-    )
-
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Perfil de aluno não encontrado.",
-        )
-
-    course = db.scalar(
-        select(Course).where(Course.id == student.course_id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Curso do aluno não encontrado.",
-        )
-
-    hours_service = HoursService(db)
-    if hours_service.has_reached_course_limit(student.id, course):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=(
-                f"Você já atingiu o limite de horas complementares do curso "
-                f"({course.total_required_hours}h + {course.max_extra_hours}h de tolerância). "
-                "Novas solicitações não são permitidas."
-            ),
-        )
-
-    activity_type = db.scalar(
-        select(ActivityType).where(
-            ActivityType.id == activity_type_id,
-            ActivityType.course_id == student.course_id,
-            ActivityType.is_active.is_(True),
-        )
-    )
-
-    if not activity_type:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tipo de atividade não encontrado para o curso do aluno.",
-        )
-
-    try:
-        file_url = storage_service.upload_certificate(
-            file=file,
-            student_id=student.id,
-        )
-    except InvalidFileError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
-    except StorageError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(exc),
-        ) from exc
-
-    activity_request = ActivityRequest(
-        student_id=student.id,
-        activity_type_id=activity_type.id,
+    return ActivityRequestCreationService(db, storage_service).create(
+        student=student,
+        activity_type_id=activity_type_id,
         title=title,
-        description=description,
+        requested_hours=requested_hours,
         location=location,
         activity_date=activity_date,
-        requested_hours=requested_hours,
-        accepted_hours=None,
-        status=ActivityRequestStatus.PENDING,
+        description=description,
+        file=file,
     )
-
-    db.add(activity_request)
-    db.flush()
-
-    attachment = ActivityAttachment(
-        activity_request_id=activity_request.id,
-        file_name=file.filename or "certificate",
-        file_url=file_url,
-        content_type=file.content_type,
-        size_bytes=file.size,
-    )
-
-    db.add(attachment)
-
-    history_service = ActivityRequestHistoryService(db)
-    history_service.record(
-        activity_request_id=activity_request.id,
-        changed_by_id=current_user.id,
-        previous_status=None,
-        new_status=ActivityRequestStatus.PENDING,
-        new_accepted_hours=None,
-        comment="Solicitação criada pelo aluno.",
-    )
-
-    db.commit()
-
-    created_request = db.scalar(
-        select(ActivityRequest)
-        .options(selectinload(ActivityRequest.attachments))
-        .where(ActivityRequest.id == activity_request.id)
-    )
-
-    if not created_request:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erro ao buscar solicitação criada.",
-        )
-
-    return created_request
 
 
 @router.get(
     "/{activity_request_id}",
     response_model=ActivityRequestCoordinatorResponse | ActivityRequestResponse,
+    summary="Detalha uma solicitação (dono ou coordenador do curso)",
+    responses=error_responses(404),
 )
 def get_activity_request(
     activity_request_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ActivityRequestCoordinatorResponse | ActivityRequestResponse:
-    activity_request = ActivityRequestQueryService(db).get_by_id(activity_request_id)
-
-    if activity_request is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Solicitação não encontrada.",
-        )
-
-    is_owner_student = (
-        current_user.role == UserRole.STUDENT
-        and activity_request.student.user_id == current_user.id
-    )
-    is_course_coordinator = (
-        current_user.role == UserRole.COORDINATOR
-        and activity_request.student.course.coordinator_id == current_user.id
+    activity_request = ActivityRequestQueryService(db).get_visible_to(
+        activity_request_id,
+        current_user,
+        selectinload(ActivityRequest.attachments),
+        selectinload(ActivityRequest.in_review_by).selectinload(User.coordinator_profile),
+        selectinload(ActivityRequest.reviewer).selectinload(User.coordinator_profile),
     )
 
-    if is_course_coordinator:
+    if current_user.role == UserRole.COORDINATOR:
         return _to_coordinator_response(activity_request)
 
-    if is_owner_student:
-        return ActivityRequestResponse.model_validate(activity_request)
-
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="Você não possui permissão para ver esta solicitação.",
-    )
+    return ActivityRequestResponse.model_validate(activity_request)
 
 
 @router.get(
     "/{activity_request_id}/history",
     response_model=list[ActivityRequestHistoryResponse],
+    summary="Histórico de mudanças de status da solicitação",
+    responses=error_responses(404),
 )
 def get_activity_request_history(
     activity_request_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
-    activity_request = db.scalar(
-        select(ActivityRequest)
-        .options(
-            selectinload(ActivityRequest.history_items)
-            .selectinload(ActivityRequestHistory.changed_by)
-            .selectinload(User.coordinator_profile),
-            selectinload(ActivityRequest.history_items)
-            .selectinload(ActivityRequestHistory.changed_by)
-            .selectinload(User.student_profile),
-            selectinload(ActivityRequest.student).selectinload(Student.course),
-        )
-        .where(ActivityRequest.id == activity_request_id)
+) -> list[ActivityRequestHistory]:
+    activity_request = ActivityRequestQueryService(db).get_visible_to(
+        activity_request_id,
+        current_user,
+        selectinload(ActivityRequest.history_items)
+        .selectinload(ActivityRequestHistory.changed_by)
+        .selectinload(User.coordinator_profile),
+        selectinload(ActivityRequest.history_items)
+        .selectinload(ActivityRequestHistory.changed_by)
+        .selectinload(User.student_profile),
     )
-
-    if activity_request is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Solicitação não encontrada.",
-        )
-
-    is_owner_student = (
-        current_user.role == UserRole.STUDENT
-        and activity_request.student.user_id == current_user.id
-    )
-    is_course_coordinator = (
-        current_user.role == UserRole.COORDINATOR
-        and activity_request.student.course.coordinator_id == current_user.id
-    )
-
-    if not (is_owner_student or is_course_coordinator):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não possui permissão para ver o histórico desta solicitação.",
-        )
 
     return sorted(
         activity_request.history_items,
@@ -390,6 +227,8 @@ def get_activity_request_history(
 @router.get(
     "/{activity_request_id}/attachments/{attachment_id}/download",
     response_model=ActivityAttachmentDownloadResponse,
+    summary="Gera um link temporário para baixar o certificado",
+    responses=error_responses(404, 503),
 )
 def get_activity_attachment_download_url(
     activity_request_id: uuid.UUID,
@@ -398,35 +237,11 @@ def get_activity_attachment_download_url(
     db: Session = Depends(get_db),
     storage_service: MinioStorageService = Depends(get_storage_service),
 ) -> ActivityAttachmentDownloadResponse:
-    activity_request = db.scalar(
-        select(ActivityRequest)
-        .options(
-            selectinload(ActivityRequest.attachments),
-            selectinload(ActivityRequest.student).selectinload(Student.course),
-        )
-        .where(ActivityRequest.id == activity_request_id)
+    activity_request = ActivityRequestQueryService(db).get_visible_to(
+        activity_request_id,
+        current_user,
+        selectinload(ActivityRequest.attachments),
     )
-
-    if activity_request is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Solicitação não encontrada.",
-        )
-
-    is_owner_student = (
-        current_user.role == UserRole.STUDENT
-        and activity_request.student.user_id == current_user.id
-    )
-    is_course_coordinator = (
-        current_user.role == UserRole.COORDINATOR
-        and activity_request.student.course.coordinator_id == current_user.id
-    )
-
-    if not (is_owner_student or is_course_coordinator):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não possui permissão para acessar o anexo desta solicitação.",
-        )
 
     attachment = next(
         (item for item in activity_request.attachments if item.id == attachment_id),
@@ -434,21 +249,12 @@ def get_activity_attachment_download_url(
     )
 
     if attachment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Anexo não encontrado.",
-        )
+        raise NotFoundError("Anexo não encontrado.")
 
-    try:
-        url = storage_service.generate_download_url(
-            object_name=attachment.file_url,
-            file_name=attachment.file_name,
-        )
-    except StorageError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(exc),
-        ) from exc
+    url = storage_service.generate_download_url(
+        object_name=attachment.file_url,
+        file_name=attachment.file_name,
+    )
 
     return ActivityAttachmentDownloadResponse(
         url=url,
@@ -458,77 +264,56 @@ def get_activity_attachment_download_url(
     )
 
 
-@router.patch("/{activity_request_id}/cancel", response_model=ActivityRequestResponse)
+@router.patch(
+    "/{activity_request_id}/cancel",
+    response_model=ActivityRequestResponse,
+    summary="Cancela uma solicitação pendente (aluno)",
+    responses=error_responses(404, 409),
+)
 def cancel_activity_request(
     activity_request_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(UserRole.STUDENT)),
     db: Session = Depends(get_db),
 ) -> ActivityRequest:
-    if current_user.role != UserRole.STUDENT:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas alunos podem cancelar suas próprias solicitações.",
-        )
-
-    service = ActivityRequestActionService(db)
-
-    try:
-        return service.cancel(
-            activity_request_id=activity_request_id,
-            user_id=current_user.id,
-        )
-    except ActivityRequestActionError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+    return ActivityRequestActionService(db).cancel(
+        activity_request_id=activity_request_id,
+        user_id=current_user.id,
+    )
 
 
 @router.patch(
     "/{activity_request_id}/assume",
     response_model=ActivityReviewResponse,
+    summary="Assume a análise de uma solicitação pendente (coordenador)",
+    responses=error_responses(404, 409),
 )
 def assume_activity_request(
     activity_request_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(UserRole.COORDINATOR)),
     db: Session = Depends(get_db),
 ) -> ActivityRequest:
-    service = ActivityReviewService(db)
-
-    try:
-        return service.assume(
-            activity_request_id=activity_request_id,
-            current_user=current_user,
-        )
-    except ActivityReviewError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+    return ActivityReviewService(db).assume(
+        activity_request_id=activity_request_id,
+        current_user=current_user,
+    )
 
 
 @router.patch(
     "/{activity_request_id}/review",
     response_model=ActivityReviewResponse,
+    summary="Aprova ou rejeita uma solicitação em análise (coordenador)",
+    responses=error_responses(404, 409, 422),
 )
 def review_activity_request(
     activity_request_id: uuid.UUID,
     payload: ActivityReviewRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(UserRole.COORDINATOR)),
     db: Session = Depends(get_db),
 ) -> ActivityRequest:
-    service = ActivityReviewService(db)
-
-    try:
-        return service.review(
-            activity_request_id=activity_request_id,
-            current_user=current_user,
-            status=payload.status,
-            accepted_hours=payload.accepted_hours,
-            rejection_reason=payload.rejection_reason,
-        )
-    except ActivityReviewError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+    return ActivityReviewService(db).review(
+        activity_request_id=activity_request_id,
+        current_user=current_user,
+        status=payload.status,
+        accepted_hours=payload.accepted_hours,
+        rejection_reason=payload.rejection_reason,
+    )

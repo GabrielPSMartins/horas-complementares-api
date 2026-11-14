@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'">
     <title>Solicitações - Horas Complementares</title>
     
     <!-- Folhas de Estilo -->
@@ -11,8 +12,8 @@
     <link rel="stylesheet" href="../../css/componentes.css">
     
     <!-- Ícones Lucide e Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>   
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -101,6 +102,7 @@
                     <select id="select-status" style="padding: 10px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fff; font-size: 0.875rem; color: #334155; outline: none; cursor: pointer;">
                         <option value="todos">Todos status</option>
                         <option value="PENDING">Pendente</option>
+                        <option value="IN_REVIEW">Em Análise</option>
                         <option value="APPROVED">Aprovada</option>
                         <option value="REJECTED">Rejeitada</option>
                         <option value="CANCELED">Cancelada</option>
@@ -161,10 +163,10 @@
             0 solicitação(ões) · Pág. 1/1
         </span>
         <div class="flex-align-center" style="gap: 8px;">
-            <button id="btn-prev-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px; opacity: 0.4; cursor: not-allowed; border-radius: 8px;" disabled>
+            <button id="btn-prev-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px; border-radius: 8px;" disabled>
                 ← Ant.
             </button>
-            <button id="btn-next-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px; opacity: 0.4; cursor: not-allowed; border-radius: 8px;" disabled>
+            <button id="btn-next-page" class="btn-export" style="background-color: white; border: 1px solid var(--border-color, #cbd5e1); color: var(--text-primary); padding: 4px 12px; font-size: 12px; border-radius: 8px;" disabled>
                 Próx. →
             </button>
         </div>
@@ -178,8 +180,6 @@
     <script type="module" src="../../js/pages/coordenador/solicitacoes-alunos.js"></script>
 
     <!-- Inicialização dos Ícones Lucide -->
-    <script>
-        lucide.createIcons();
-    </script>
+    <script src="../../js/lucide-init.js"></script>
 </body>
 </html>

@@ -1,12 +1,12 @@
 import { protegerRota } from '../../auth.js';
-import { carregarDadosPerfil } from '../../utils/userprofile.js';
+import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
 import { obterPerfilCoordenador, alterarSenha } from '../../api.js';
 
 protegerRota();
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Tenta carregar os dados básicos do perfil do storage/helper para o topo e sidebar
-    await carregarDadosPerfil();
+    // 1. Carrega os dados básicos do perfil para o topo e sidebar
+    await carregarDadosPerfilCoordenador();
 
     // 2. Busca e preenche as informações completas do coordenador (Sidebar, Header e Card)
     await preencherDadosCoordenador();
@@ -36,11 +36,11 @@ async function preencherDadosCoordenador() {
         // Busca os dados da API (/coordinators/me)
         const coord = await obterPerfilCoordenador();
 
-        const nome = coord?.first_name;
-        const sobrenome = coord?.last_name;
-        const email = coord?.email || '---';
-        const matricula = coord?.registration_number || coord?.registrationNumber || coord?.matricula || '---';
-        const curso = coord?.course?.name || coord?.curso || 'Sistemas de Informação';
+        const nome = coord.first_name;
+        const sobrenome = coord.last_name;
+        const email = coord.email;
+        const matricula = coord.registration_number;
+        const curso = coord.course_name ?? 'Nenhum curso vinculado';
         const inicial = obterInicial(nome, sobrenome);
 
         // --- PREENCHE HEADER SUPERIOR ---

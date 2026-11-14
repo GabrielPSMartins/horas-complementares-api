@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'">
     <title>Tipos de Atividades - Horas Complementares</title>
     
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/layout.css">
     <link rel="stylesheet" href="../../css/componentes.css">
     
-    <script src="https://unpkg.com/lucide@latest"></script>   
+    <script src="https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -270,8 +271,6 @@
     <script type="module" src="../../js/pages/alunos/tipos-de-atividades.js"></script>
 
     <!-- Script de Ícones Lucide -->
-    <script>
-        lucide.createIcons();
-    </script>
+    <script src="../../js/lucide-init.js"></script>
 </body>
 </html>

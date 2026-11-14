@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'">
     <title>Dashboard - Horas Complementares</title>
     
     <link rel="stylesheet" href="../../css/global.css">
@@ -10,8 +11,8 @@
     <link rel="stylesheet" href="../../css/componentes.css">
     
     <!-- Ícones e Biblioteca de Gráficos -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>   
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -240,8 +241,6 @@
     <script type="module" src="../../js/pages/alunos/dashboard.js"></script>
 
     <!-- INICIALIZAÇÃO DOS ÍCONES LUCIDE -->
-    <script>
-        lucide.createIcons();
-    </script>
+    <script src="../../js/lucide-init.js"></script>
 </body>
 </html>

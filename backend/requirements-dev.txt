@@ -1,0 +1,7 @@
+# Dependências de desenvolvimento e testes.
+-r requirements.txt
+
+pytest==9.1.1
+pytest-cov==7.0.0
+# Cliente HTTP usado pelo TestClient do FastAPI/Starlette (continuação do httpx, mantida pela Pydantic).
+httpx2==2.0.0

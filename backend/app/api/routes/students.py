@@ -1,25 +1,32 @@
-import uuid
-
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import get_current_user, require_roles
+from app.api.dependencies.auth import require_roles
+from app.api.dependencies.profiles import get_coordinator_course, get_course_student, get_current_student
+from app.api.responses import error_responses
 from app.db.dependencies import get_db
 from app.models.course import Course
 from app.models.student import Student
 from app.models.user import User, UserRole
 from app.schemas.activity_report import ActivityReportResponse
 from app.schemas.hours_summary import HoursSummaryResponse
-from app.schemas.student import StudentCreateRequest, StudentCreateResponse
+from app.schemas.pagination import PaginatedResponse
+from app.schemas.student import (
+    StudentCreateRequest,
+    StudentCreateResponse,
+    StudentListItemResponse,
+    StudentProfileResponse,
+)
 from app.services.hours_service import HoursService
 from app.services.report_pdf_service import build_report_pdf
-from app.services.student_registration_service import (
-    StudentRegistrationError,
-    StudentRegistrationService,
-)
+from app.services.student_query_service import StudentQueryService
+from app.services.student_registration_service import StudentRegistrationService
 
-router = APIRouter(prefix="/students", tags=["students"])
+router = APIRouter(
+    prefix="/students",
+    tags=["students"],
+    responses=error_responses(401, 403),
+)
 
 
 def _pdf_response(pdf_bytes: bytes, registration_number: str) -> Response:
@@ -38,6 +45,8 @@ def _pdf_response(pdf_bytes: bytes, registration_number: str) -> Response:
     "",
     response_model=StudentCreateResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Cadastra um aluno (coordenador ou ROOT)",
+    responses=error_responses(404, 409, 422),
 )
 def create_student(
     payload: StudentCreateRequest,
@@ -45,231 +54,154 @@ def create_student(
         require_roles(UserRole.COORDINATOR, UserRole.ROOT)
     ),
     db: Session = Depends(get_db),
-) -> Student:
-    service = StudentRegistrationService(db)
+) -> StudentCreateResponse:
+    student = StudentRegistrationService(db).register(
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        email=payload.email,
+        cpf=payload.cpf,
+        registration_number=payload.registration_number,
+        current_semester=payload.current_semester,
+        enrollment_date=payload.enrollment_date,
+        expected_graduation_date=payload.expected_graduation_date,
+        course_id=payload.course_id,
+        current_user=current_user,
+    )
 
-    try:
-        student = service.register(
-            first_name=payload.first_name,
-            last_name=payload.last_name,
-            email=payload.email,
-            cpf=payload.cpf,
-            registration_number=payload.registration_number,
-            current_semester=payload.current_semester,
-            enrollment_date=payload.enrollment_date,
-            expected_graduation_date=payload.expected_graduation_date,
-            course_id=payload.course_id,
-            current_user=current_user,
-        )
-    except StudentRegistrationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(exc),
-        ) from exc
+    return StudentCreateResponse.model_validate(student)
 
-    return StudentCreateResponse(
+
+@router.get(
+    "",
+    response_model=PaginatedResponse[StudentListItemResponse],
+    summary="Lista os alunos do curso com o resumo de horas (coordenador)",
+    responses=error_responses(404),
+)
+def list_course_students(
+    search: str | None = Query(
+        default=None,
+        description="Busca por nome ou matrícula do aluno",
+    ),
+    semester: int | None = Query(default=None, ge=1),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
+    course: Course = Depends(get_coordinator_course),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[StudentListItemResponse]:
+    query_service = StudentQueryService(db)
+
+    items, total = query_service.list_by_course(
+        course=course,
+        search=search,
+        semester=semester,
+        page=page,
+        page_size=page_size,
+    )
+
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=query_service.calculate_total_pages(total, page_size),
+    )
+
+
+@router.get(
+    "/me",
+    response_model=StudentProfileResponse,
+    summary="Perfil do aluno logado",
+    responses=error_responses(404),
+)
+def get_my_profile(
+    student: Student = Depends(get_current_student),
+) -> StudentProfileResponse:
+    return StudentProfileResponse(
         id=student.id,
-        user_id=student.user_id,
+        name=student.full_name,
         first_name=student.first_name,
         last_name=student.last_name,
-        full_name=student.full_name,
-        email=payload.email,
+        email=student.user.email,
         cpf=student.cpf,
         registration_number=student.registration_number,
         current_semester=student.current_semester,
-        username=student.registration_number,
-        course_id=student.course_id,
         enrollment_date=student.enrollment_date,
-        created_at=student.created_at,
+        expected_graduation_date=student.expected_graduation_date,
+        course_id=student.course_id,
+        course_name=student.course.name,
     )
 
 
-@router.get("/me/hours-summary", response_model=HoursSummaryResponse)
+@router.get(
+    "/me/hours-summary",
+    response_model=HoursSummaryResponse,
+    summary="Resumo de horas do aluno logado",
+    responses=error_responses(404),
+)
 def get_my_hours_summary(
-    current_user: User = Depends(get_current_user),
+    student: Student = Depends(get_current_student),
     db: Session = Depends(get_db),
 ) -> HoursSummaryResponse:
-    if current_user.role != UserRole.STUDENT:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas alunos podem acessar o resumo de horas.",
-        )
-
-    student = db.scalar(
-        select(Student).where(Student.user_id == current_user.id)
-    )
-
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Perfil de aluno não encontrado.",
-        )
-
-    course = db.scalar(
-        select(Course).where(Course.id == student.course_id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Curso do aluno não encontrado.",
-        )
-
-    hours_service = HoursService(db)
-    summary = hours_service.get_hours_summary(student.id, course)
+    summary = HoursService(db).get_hours_summary(student.id, student.course)
 
     return HoursSummaryResponse(**summary)
 
 
-@router.get("/me/report", response_model=ActivityReportResponse)
+@router.get(
+    "/me/report",
+    response_model=ActivityReportResponse,
+    summary="Relatório de horas aprovadas do aluno logado",
+    responses=error_responses(404),
+)
 def get_my_report(
-    current_user: User = Depends(get_current_user),
+    student: Student = Depends(get_current_student),
     db: Session = Depends(get_db),
 ) -> ActivityReportResponse:
-    if current_user.role != UserRole.STUDENT:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas alunos podem acessar o próprio relatório.",
-        )
-
-    student = db.scalar(
-        select(Student).where(Student.user_id == current_user.id)
-    )
-
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Perfil de aluno não encontrado.",
-        )
-
-    course = db.scalar(
-        select(Course).where(Course.id == student.course_id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Curso do aluno não encontrado.",
-        )
-
-    hours_service = HoursService(db)
-    report = hours_service.build_report(student, course)
+    report = HoursService(db).build_report(student, student.course)
 
     return ActivityReportResponse(**report)
 
 
-@router.get("/me/report/pdf", response_class=Response)
+@router.get(
+    "/me/report/pdf",
+    response_class=Response,
+    summary="Relatório do aluno logado em PDF",
+    responses={200: {"content": {"application/pdf": {}}}, **error_responses(404)},
+)
 def export_my_report_pdf(
-    current_user: User = Depends(get_current_user),
+    student: Student = Depends(get_current_student),
     db: Session = Depends(get_db),
 ) -> Response:
-    if current_user.role != UserRole.STUDENT:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas alunos podem exportar o próprio relatório.",
-        )
-
-    student = db.scalar(
-        select(Student).where(Student.user_id == current_user.id)
-    )
-
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Perfil de aluno não encontrado.",
-        )
-
-    course = db.scalar(
-        select(Course).where(Course.id == student.course_id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Curso do aluno não encontrado.",
-        )
-
-    report = HoursService(db).build_report(student, course)
+    report = HoursService(db).build_report(student, student.course)
 
     return _pdf_response(build_report_pdf(report), student.registration_number)
 
 
-@router.get("/{student_id}/report", response_model=ActivityReportResponse)
+@router.get(
+    "/{student_id}/report",
+    response_model=ActivityReportResponse,
+    summary="Relatório de horas de um aluno do curso (coordenador)",
+    responses=error_responses(404),
+)
 def get_student_report(
-    student_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
+    student: Student = Depends(get_course_student),
     db: Session = Depends(get_db),
 ) -> ActivityReportResponse:
-    if current_user.role != UserRole.COORDINATOR:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas coordenadores podem acessar relatórios de outros alunos.",
-        )
-
-    student = db.scalar(
-        select(Student).where(Student.id == student_id)
-    )
-
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Aluno não encontrado.",
-        )
-
-    course = db.scalar(
-        select(Course).where(Course.id == student.course_id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Curso do aluno não encontrado.",
-        )
-
-    if course.coordinator_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não possui permissão para ver o relatório deste aluno.",
-        )
-
-    hours_service = HoursService(db)
-    report = hours_service.build_report(student, course)
+    report = HoursService(db).build_report(student, student.course)
 
     return ActivityReportResponse(**report)
 
 
-@router.get("/{student_id}/report/pdf", response_class=Response)
+@router.get(
+    "/{student_id}/report/pdf",
+    response_class=Response,
+    summary="Relatório de um aluno do curso em PDF (coordenador)",
+    responses={200: {"content": {"application/pdf": {}}}, **error_responses(404)},
+)
 def export_student_report_pdf(
-    student_id: uuid.UUID,
-    current_user: User = Depends(require_roles(UserRole.COORDINATOR)),
+    student: Student = Depends(get_course_student),
     db: Session = Depends(get_db),
 ) -> Response:
-    student = db.scalar(
-        select(Student).where(Student.id == student_id)
-    )
-
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Aluno não encontrado.",
-        )
-
-    course = db.scalar(
-        select(Course).where(Course.id == student.course_id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Curso do aluno não encontrado.",
-        )
-
-    if course.coordinator_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Você não possui permissão para exportar o relatório deste aluno.",
-        )
-
-    report = HoursService(db).build_report(student, course)
+    report = HoursService(db).build_report(student, student.course)
 
     return _pdf_response(build_report_pdf(report), student.registration_number)

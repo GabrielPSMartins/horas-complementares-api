@@ -1,15 +1,16 @@
+import logging
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.exceptions import ConflictError, NotFoundError, PermissionDeniedError
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.student import Student
 from app.services.activity_request_history_service import ActivityRequestHistoryService
 
 
-class ActivityRequestActionError(Exception):
-    pass
+logger = logging.getLogger(__name__)
 
 
 class ActivityRequestActionService:
@@ -29,7 +30,7 @@ class ActivityRequestActionService:
         )
 
         if not student:
-            raise ActivityRequestActionError(
+            raise NotFoundError(
                 "Perfil de aluno não encontrado."
             )
 
@@ -40,23 +41,23 @@ class ActivityRequestActionService:
         )
 
         if activity_request is None:
-            raise ActivityRequestActionError(
+            raise NotFoundError(
                 "Solicitação não encontrada."
             )
 
         if activity_request.student_id != student.id:
-            raise ActivityRequestActionError(
+            raise PermissionDeniedError(
                 "Você não possui permissão para cancelar esta solicitação."
             )
 
         if activity_request.status == ActivityRequestStatus.IN_REVIEW:
-            raise ActivityRequestActionError(
+            raise ConflictError(
                 "Esta solicitação já está em análise pelo coordenador "
                 "e não pode mais ser cancelada."
             )
 
         if activity_request.status != ActivityRequestStatus.PENDING:
-            raise ActivityRequestActionError(
+            raise ConflictError(
                 "Apenas solicitações pendentes podem ser canceladas. "
                 f"Status atual: {activity_request.status.value}."
             )
@@ -75,5 +76,11 @@ class ActivityRequestActionService:
 
         self.db.commit()
         self.db.refresh(activity_request)
+
+        logger.info(
+            "activity_request_canceled | activity_request_id=%s student_user_id=%s",
+            activity_request.id,
+            user_id,
+        )
 
         return activity_request

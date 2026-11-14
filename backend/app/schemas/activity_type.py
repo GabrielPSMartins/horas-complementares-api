@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ActivityTypeResponse(BaseModel):
@@ -13,5 +13,4 @@ class ActivityTypeResponse(BaseModel):
     requires_attachment: bool
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

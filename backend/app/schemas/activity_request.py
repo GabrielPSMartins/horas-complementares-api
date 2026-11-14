@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.models.activity_request import ActivityRequestStatus
 
@@ -14,8 +14,7 @@ class ActivityAttachmentResponse(BaseModel):
     size_bytes: int | None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ActivityAttachmentDownloadResponse(BaseModel):
@@ -47,8 +46,7 @@ class ActivityRequestResponse(BaseModel):
     updated_at: datetime
     attachments: list[ActivityAttachmentResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ActivityRequestCoordinatorResponse(ActivityRequestResponse):
 

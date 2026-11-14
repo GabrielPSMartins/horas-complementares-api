@@ -753,3 +753,607 @@
     border-color: #2563eb;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
 }
+
+/* ===================================================================
+   Componentes usados pelos scripts de página (antes eram estilos inline no JS)
+   =================================================================== */
+
+/* Linha do tempo do histórico da solicitação (aluno e coordenador) */
+.timeline {
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-item {
+    --timeline-color: #2563eb;
+    --timeline-bg: #e0f2fe;
+    position: relative;
+    border-left: 2px solid var(--border-color);
+    padding: 0 0 20px 18px;
+}
+
+.timeline-item:last-child { padding-bottom: 0; }
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -7px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: var(--timeline-color);
+    border: 2px solid #ffffff;
+}
+
+.timeline-item--criada { --timeline-color: #0284c7; --timeline-bg: #e0f2fe; }
+.timeline-item--em-analise { --timeline-color: #d97706; --timeline-bg: #fef3c7; }
+.timeline-item--aprovada { --timeline-color: #16a34a; --timeline-bg: #dcfce7; }
+.timeline-item--rejeitada { --timeline-color: #dc2626; --timeline-bg: #fee2e2; }
+.timeline-item--cancelada { --timeline-color: #64748b; --timeline-bg: #f1f5f9; }
+
+.timeline-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.timeline-tag {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--timeline-color);
+    background-color: var(--timeline-bg);
+    padding: 2px 10px;
+    border-radius: 999px;
+}
+
+.timeline-date {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.timeline-author {
+    font-size: 13px;
+    color: #334155;
+    font-weight: 600;
+    margin-top: 6px;
+}
+
+.timeline-author strong { color: var(--text-primary); font-weight: 700; }
+
+.timeline-note {
+    margin-top: 8px;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.timeline-item--aprovada .timeline-note { background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; font-weight: 700; }
+.timeline-item--aprovada .timeline-note strong { font-size: 15px; font-weight: 800; }
+.timeline-item--rejeitada .timeline-note { background-color: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+
+.timeline-vazia {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* Banner de sucesso/erro acima das ações (detalhe do coordenador) */
+.alert-banner {
+    padding: 14px 20px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    border: 1px solid transparent;
+}
+
+.alert-banner--sucesso { background-color: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+.alert-banner--erro { background-color: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+
+/* Cancelamento da solicitação (detalhe do aluno) */
+.cancelamento {
+    margin-top: 24px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 16px;
+}
+
+.cancelamento-acao {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-cancelar-solicitacao {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-cancelar-solicitacao svg { width: 18px; height: 18px; }
+
+.cancelamento-confirmacao {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background-color: #fff5f5;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.cancelamento-confirmacao > svg {
+    width: 22px;
+    height: 22px;
+    color: #dc2626;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.cancelamento-confirmacao strong {
+    color: #991b1b;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.cancelamento-confirmacao p {
+    color: #7f1d1d;
+    font-size: 13px;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+}
+
+.cancelamento-botoes {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.btn-secundario,
+.btn-perigo {
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.btn-secundario { background-color: #ffffff; color: #475569; border: 1px solid #cbd5e1; font-weight: 600; }
+.btn-perigo { background-color: #dc2626; color: #ffffff; border: none; font-weight: 700; }
+
+/* Card "Ações disponíveis" (detalhe do coordenador) */
+.acoes-titulo {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 16px 0;
+}
+
+.acao-assumir {
+    background-color: #fffbeb;
+    border: 1.5px solid #fde68a;
+    border-radius: 20px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.acao-assumir-info { display: flex; align-items: center; gap: 16px; }
+
+.acao-assumir-icone {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background-color: #fef3c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #d97706;
+}
+
+.acao-assumir-info strong {
+    font-size: 16px;
+    font-weight: 800;
+    color: #78350f;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.acao-assumir-info span { font-size: 14px; font-weight: 600; color: #d97706; }
+
+.btn-assumir {
+    background-color: #f59e0b;
+    color: #ffffff;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+
+.acao-responsavel {
+    background-color: #eff6ff;
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #1d4ed8;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.acao-abas {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.acao-aba {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.acao-aba--aprovar.active { border-color: #10b981; background-color: #ecfdf5; color: #047857; }
+.acao-aba--rejeitar.active { border-color: #ef4444; background-color: #fef2f2; color: #b91c1c; }
+
+.acao-form {
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.acao-form--aprovar { background-color: #f0fdf4; border: 1.5px solid #86efac; }
+.acao-form--rejeitar { background-color: #fef2f2; border: 1.5px solid #fca5a5; }
+
+.acao-form label {
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.acao-form--aprovar label { color: #166534; }
+.acao-form--rejeitar label { color: #991b1b; }
+
+.acao-form input,
+.acao-form textarea {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    outline: none;
+    background: #ffffff;
+}
+
+.acao-form textarea { resize: vertical; }
+
+.btn-confirmar {
+    color: #ffffff;
+    border: none;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 800;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-confirmar--aprovar { background-color: #059669; }
+.btn-confirmar--rejeitar { background-color: #dc2626; }
+
+/* Tabelas: célula de texto que não quebra linha e mensagem de estado (carregando/vazia/erro) */
+.celula-truncada {
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tabela-mensagem {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--text-secondary);
+}
+
+.tabela-mensagem--erro { color: var(--error-color); }
+
+.link-icone {
+    color: var(--brand-blue);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.link-icone svg { width: 18px; height: 18px; }
+
+/* Lista "Solicitações dos alunos" (coordenador) */
+.aluno-celula {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.aluno-celula-nome {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aluno-celula-sub {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.badge-semestre {
+    display: inline-flex;
+    align-items: center;
+    background-color: #e0f2fe;
+    color: #0284c7;
+    border: 1px solid #bae6fd;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    padding: 1px 8px;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Listas do dashboard do coordenador (pendentes e progresso dos alunos) */
+.lista-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.lista-item:last-child { border-bottom: none; }
+
+.lista-item-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-grow: 1;
+}
+
+.lista-item-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lista-item-sub {
+    margin-top: 2px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.lista-item-horas {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 110px;
+    justify-content: flex-end;
+    font-weight: 600;
+}
+
+.avatar-inicial {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    background-color: var(--brand-blue);
+    border-radius: 50%;
+    font-weight: 600;
+}
+
+.lista-vazia {
+    color: var(--text-secondary);
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+.progress-bar-fill.concluido { background-color: #059669; }
+.progress-bar-fill.baixo { background-color: #ef4444; }
+
+/* Tela "Alunos" (coordenador) */
+.semestre-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 18px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.02);
+}
+
+.semestre-card.vazio { opacity: 0.7; }
+
+.semestre-card.active {
+    border: 2px solid #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+    opacity: 1;
+}
+
+.semestre-card-numero {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1;
+}
+
+.semestre-card.vazio .semestre-card-numero { color: #94a3b8; }
+
+.semestre-card-contagem {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-top: 6px;
+}
+
+.semestre-card.active .semestre-card-numero,
+.semestre-card.active .semestre-card-contagem { color: #2563eb; }
+
+.aluno-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.aluno-card-topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.aluno-card-nome { margin-bottom: 2px; font-size: 1.1rem; }
+
+.aluno-card-matricula { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+
+.aluno-card .badge-formacao,
+.tabela-alunos .badge-formacao { padding: 2px 10px; font-size: 0.75rem; }
+
+.aluno-progresso-rotulo { font-size: 0.875rem; font-weight: 700; color: #475569; }
+.aluno-progresso-valor { font-size: 0.95rem; font-weight: 800; color: #0f172a; }
+.aluno-progresso-valor.concluido { color: #059669; }
+
+.aluno-card .progress-bar-bg { margin: 6px 0 0 0; height: 10px; }
+
+.aluno-card-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 4px;
+}
+
+.aluno-card-email { font-size: 0.85rem; color: #64748b; font-weight: 500; word-break: break-all; }
+
+.aluno-card .btn-export { padding: 8px 18px; font-size: 0.85rem; }
+
+.app-layout .tabela-alunos td { padding: 16px 20px; }
+.app-layout .tabela-alunos td:first-child { padding-left: 28px; }
+.app-layout .tabela-alunos td:last-child { padding-right: 28px; text-align: right; }
+.tabela-alunos-nome { font-size: 0.95rem; color: #0f172a; }
+.tabela-alunos-matricula { color: #64748b; font-size: 0.9rem; }
+.tabela-alunos-horas { font-weight: 700; color: #1e293b; font-size: 0.9rem; }
+.tabela-alunos .progress-bar-bg { flex: 1; margin: 0; height: 8px; }
+.tabela-alunos-percentual { font-weight: 800; font-size: 0.85rem; color: #0f172a; min-width: 40px; }
+
+.link-relatorio {
+    text-decoration: none;
+    color: #2563eb;
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.link-relatorio svg { width: 16px; height: 16px; }
+
+/* Relatório do aluno (coordenador) */
+.relatorio-lista-cabecalho {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.relatorio-lista-titulo { font-size: 16px; font-weight: 800; color: #0f172a; }
+
+.relatorio-filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.historico-solicitacao-topo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.historico-solicitacao-tipo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.historico-solicitacao-tipo strong { font-size: 16px; color: #0f172a; font-weight: 800; letter-spacing: -0.2px; }
+
+.historico-solicitacao-horas { text-align: right; flex-shrink: 0; }
+.historico-solicitacao-horas span { display: block; font-size: 15px; font-weight: 800; color: #1e293b; }
+.historico-solicitacao-horas .horas-aprovadas { font-size: 13px; color: #10b981; margin-top: 1px; }
+
+.historico-solicitacao-titulo { font-size: 14px; color: #64748b; font-weight: 500; margin: 0 0 6px 0; line-height: 1.4; }
+.historico-solicitacao-data { font-size: 13px; color: #94a3b8; font-weight: 500; display: block; }
+
+/* Botões de paginação desabilitados (primeira/última página) */
+.btn-export:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.texto-truncado {
+    display: block;
+    max-width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lista-item-progresso { flex-grow: 1; }
+.lista-item-progresso .lista-item-titulo { margin-bottom: 6px; }
+.app-layout .lista-item-progresso .progress-bar-bg { margin: 0; height: 8px; }

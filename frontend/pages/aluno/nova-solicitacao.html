@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'">
     <title>Nova Solicitação - Horas Complementares</title>
     
     <link rel="stylesheet" href="../../css/global.css">
     <link rel="stylesheet" href="../../css/layout.css">
     <link rel="stylesheet" href="../../css/componentes.css">
     
-    <script src="https://unpkg.com/lucide@latest"></script>   
+    <script src="https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -147,7 +148,7 @@
                             <div class="form-group">
                                 <label style="font-weight: 600;">Certificado / Comprovante <span class="required">*</span></label>
                                 <div class="file-dropzone" id="file-dropzone" style="border: 1.5px dashed #BFDBFE; border-radius: 12px; padding: 36px 20px; text-align: center; cursor: pointer; background: #FAFCFF; position: relative;">
-                                    <input type="file" id="certificate_file" name="file" accept=".pdf,.png,.jpg,.jpeg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                                    <input type="file" id="certificate_file" name="file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
                                     
                                     <div class="dropzone-content" id="dropzone-content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
                                         <i data-lucide="upload" style="width: 28px; height: 28px; color: var(--brand-blue);"></i>
@@ -185,8 +186,6 @@
 
     <script type="module" src="../../js/pages/alunos/nova-solicitacao.js"></script>
 
-    <script>
-        lucide.createIcons();
-    </script>
+    <script src="../../js/lucide-init.js"></script>
 </body>
 </html>

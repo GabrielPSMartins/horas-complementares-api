@@ -1,39 +1,31 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import require_roles
+from app.api.dependencies.profiles import get_coordinator_course
+from app.api.responses import error_responses
 from app.db.dependencies import get_db
 from app.models.course import Course
-from app.models.user import User, UserRole
 from app.schemas.dashboard import CoordinatorDashboardResponse
 from app.services.hours_service import HoursService
 
 router = APIRouter(prefix="/coordinator", tags=["coordinator"])
 
 
-@router.get("/dashboard", response_model=CoordinatorDashboardResponse)
+@router.get(
+    "/dashboard",
+    response_model=CoordinatorDashboardResponse,
+    summary="Totais de solicitações por status e de alunos ativos do curso",
+    responses=error_responses(401, 403, 404),
+)
 def get_coordinator_dashboard(
     semester: int | None = Query(
         default=None,
         ge=1,
-        le=8,
         description="Filtra o dashboard por semestre dos alunos",
     ),
-    current_user: User = Depends(require_roles(UserRole.COORDINATOR)),
+    course: Course = Depends(get_coordinator_course),
     db: Session = Depends(get_db),
 ) -> CoordinatorDashboardResponse:
-    course = db.scalar(
-        select(Course).where(Course.coordinator_id == current_user.id)
-    )
-
-    if not course:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Nenhum curso vinculado a este coordenador.",
-        )
-
-    hours_service = HoursService(db)
-    summary = hours_service.get_course_requests_summary(course.id, semester=semester)
+    summary = HoursService(db).get_course_requests_summary(course.id, semester=semester)
 
     return CoordinatorDashboardResponse(**summary)

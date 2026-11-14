@@ -1,7 +1,11 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.api.router import api_router
+from app.api.validation_errors import handle_validation_error
+from app.core.exceptions import DomainError
 from app.middlewares.logging import request_logging_middleware
 from config.logging import configure_logging
 from config.settings import settings
@@ -21,9 +25,17 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition"],
+    expose_headers=["Content-Disposition", "X-Request-ID"],
 )
 
 app.middleware("http")(request_logging_middleware)
+
+
+app.add_exception_handler(RequestValidationError, handle_validation_error)
+
+
+@app.exception_handler(DomainError)
+def handle_domain_error(_: Request, exc: DomainError) -> JSONResponse:
+    return JSONResponse(status_code=exc.status_code, content={"detail": str(exc)})
 
 app.include_router(api_router)

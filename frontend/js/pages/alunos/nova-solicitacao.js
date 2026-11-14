@@ -1,6 +1,7 @@
 import { protegerRota } from '../../auth.js';
 import { obterTiposAtividades, criarSolicitacao } from '../../api.js';
 import { carregarDadosPerfil } from '../../utils/userprofile.js';
+import { escapeHtml } from '../../utils/html.js';
 
 protegerRota();
 
@@ -28,7 +29,7 @@ async function carregarTiposAtividades() {
         const tipos = await obterTiposAtividades();
         if (tipos && Array.isArray(tipos)) {
             selectTipo.innerHTML = '<option value="" disabled selected>Selecionar...</option>' + 
-                tipos.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+                tipos.map(t => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)}</option>`).join('');
         }
     } catch (error) {
         exibirMensagem('Erro ao carregar os tipos de atividades. Tente recarregar a página.', 'error');
@@ -43,8 +44,9 @@ function inicializarDropzone() {
     const fileNameDisplay = document.getElementById('file-name-display');
     const btnRemoveFile = document.getElementById('btn-remove-file');
 
-    const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    const ALLOWED_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg'];
+    // Mesmos formatos aceitos pela API (backend/app/services/storage.py)
+    const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
+    const ALLOWED_EXTENSIONS = ['.pdf', '.png', '.jpg', '.jpeg', '.webp'];
 
     if (!fileInput) return;
 
@@ -57,7 +59,7 @@ function inicializarDropzone() {
             const isValidType = ALLOWED_TYPES.includes(file.type) || ALLOWED_EXTENSIONS.includes(fileExtension);
 
             if (!isValidType) {
-                exibirMensagem('Formato inválido! Envie apenas arquivos em PDF ou Imagens (PNG, JPG, JPEG).', 'error');
+                exibirMensagem('Formato inválido! Envie apenas arquivos em PDF ou imagem (PNG, JPG ou WEBP).', 'error');
                 resetarUpload();
                 return;
             }

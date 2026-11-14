@@ -13,7 +13,7 @@ class HealthCheckResponse(BaseModel):
     database: str
 
 
-@router.get("", response_model=HealthCheckResponse)
+@router.get("", response_model=HealthCheckResponse, summary="Verifica se a API e o banco estão no ar")
 def health_check(response: Response) -> HealthCheckResponse:
     """Verifica se a aplicação e suas dependências principais estão disponíveis."""
     database_is_connected = check_database_connection()

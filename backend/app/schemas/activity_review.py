@@ -1,7 +1,9 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from app.models.activity_request import ActivityRequestStatus
 
@@ -12,9 +14,12 @@ class ActivityReviewRequest(BaseModel):
     accepted_hours: int | None = Field(
         default=None,
         ge=0,
+        le=1000,
     )
 
-    rejection_reason: str | None = None
+    # Espaços nas pontas são removidos; um motivo só com espaços vira vazio
+    # e é recusado pelo serviço na rejeição.
+    rejection_reason: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] | None = None
 
 
 class ActivityReviewResponse(BaseModel):
@@ -38,5 +43,4 @@ class ActivityReviewResponse(BaseModel):
 
     reviewed_at: datetime | None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,15 +1,17 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr
+
+from app.schemas.validators import Cpf, PersonName, RegistrationNumber
 
 
 class CoordinatorCreateRequest(BaseModel):
-    first_name: str = Field(min_length=1, max_length=120)
-    last_name: str = Field(min_length=1, max_length=120)
+    first_name: PersonName
+    last_name: PersonName
     email: EmailStr
-    cpf: str
-    registration_number: str
+    cpf: Cpf
+    registration_number: RegistrationNumber
     course_id: uuid.UUID
 
 
@@ -26,8 +28,7 @@ class CoordinatorCreateResponse(BaseModel):
     course_id: uuid.UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CoordinatorMeResponse(BaseModel):
@@ -43,3 +44,4 @@ class CoordinatorMeResponse(BaseModel):
     must_change_password: bool
     course_id: uuid.UUID | None
     course_name: str | None
+    course_total_semesters: int | None

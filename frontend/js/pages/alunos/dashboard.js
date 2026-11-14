@@ -1,6 +1,8 @@
 import { protegerRota } from '../../auth.js';
 import { obterRelatorioAluno, obterMinhasSolicitacoes, exportarRelatorioPdf } from '../../api.js';
 import { preencherCamposPerfil } from '../../utils/userprofile.js';
+import { escapeHtml } from '../../utils/html.js';
+import { STATUS, formatarData, obterMapaTiposAtividade } from '../../utils/solicitacao.js';
 
 // Garante a proteção da rota antes de carregar o restante
 protegerRota();
@@ -44,37 +46,23 @@ async function tratarExportacaoPdf() {
 
 async function carregarDadosDashboard() {
     try {
-        // Busca os dados através do arquivo api.js em paralelo
-        const [report, requests] = await Promise.all([
+        // A API devolve as solicitações da mais recente para a mais antiga: a 1ª página com 5 itens basta
+        const [report, recentes, mapaTipos] = await Promise.all([
             obterRelatorioAluno(),
-            obterMinhasSolicitacoes()
+            obterMinhasSolicitacoes({ page_size: 5 }),
+            obterMapaTiposAtividade()
         ]);
 
-        // 1. Preenche Perfil e Horas se o relatório retornou dados
-        if (report) {
-            if (report.student) {
-                // Utiliza o módulo centralizado de perfil
-                preencherCamposPerfil(report.student);
-            }
+        // 1. Perfil, resumo de horas e gráfico por tipo (ActivityReportResponse)
+        preencherCamposPerfil(report.student);
+        preencherKPIsHoras(report.summary);
 
-            if (report.summary) {
-                preencherKPIsHoras(report.summary);
-
-                if (report.summary.approved_hours_by_type && report.summary.approved_hours_by_type.length > 0) {
-                    renderizarGraficoEvolucao(report.summary.approved_hours_by_type);
-                }
-            }
+        if (report.summary.approved_hours_by_type.length > 0) {
+            renderizarGraficoEvolucao(report.summary.approved_hours_by_type);
         }
 
-        // 2. Preenche a tabela de solicitações recentes
-        if (requests) {
-            // Garante o tratamento de array caso o backend retorne envelopado em .data
-            const listaSolicitacoes = Array.isArray(requests) 
-                ? requests 
-                : (requests.data || requests.items || requests.solicitacoes || []);
-                
-            preencherTabelaSolicitacoes(listaSolicitacoes);
-        }
+        // 2. Tabela de solicitações recentes
+        preencherTabelaSolicitacoes(recentes.items, mapaTipos);
 
     } catch (error) {
         if (error.message === 'UNAUTHORIZED') {
@@ -86,9 +74,7 @@ async function carregarDadosDashboard() {
 // --- PREENCHIMENTO DO RESUMO DE HORAS ---
 
 function preencherKPIsHoras(summary) {
-    if (!summary) return;
-
-    const porcentagem = Math.min(100, Math.round(summary.progress_percentage || 0));
+    const porcentagem = Math.min(100, Math.round(summary.progress_percentage));
 
     // Cards Superiores
     const elRequired = document.getElementById('hours-required');
@@ -96,17 +82,17 @@ function preencherKPIsHoras(summary) {
     const elApprovedPercent = document.getElementById('hours-approved-percent');
     const elRemaining = document.getElementById('hours-remaining');
 
-    if (elRequired) elRequired.innerText = `${summary.total_required_hours || 0}h`;
-    if (elApproved) elApproved.innerText = `${summary.total_approved_hours || 0}h`;
+    if (elRequired) elRequired.innerText = `${summary.total_required_hours}h`;
+    if (elApproved) elApproved.innerText = `${summary.total_approved_hours}h`;
     if (elApprovedPercent) elApprovedPercent.innerText = `${porcentagem}% concluído`;
-    if (elRemaining) elRemaining.innerText = `${summary.remaining_hours || 0}h`;
+    if (elRemaining) elRemaining.innerText = `${summary.remaining_hours}h`;
 
-    // Mapeamento de Status
-    const statusMap = summary.requests_by_status || {};
-    const pendentesCount = statusMap.PENDING ?? statusMap.pending ?? statusMap.Pendente ?? 0;
-    const aprovadasCount = statusMap.APPROVED ?? statusMap.approved ?? statusMap.Aprovado ?? 0;
-    const rejeitadasCount = statusMap.REJECTED ?? statusMap.rejected ?? statusMap.Rejeitado ?? 0;
-    const canceladasCount = statusMap.CANCELED ?? statusMap.canceled ?? statusMap.Cancelado ?? 0;
+    // Quantidade por status (a API devolve todos os status, inclusive os zerados)
+    const porStatus = summary.requests_by_status;
+    const pendentesCount = porStatus.PENDING + porStatus.IN_REVIEW;
+    const aprovadasCount = porStatus.APPROVED;
+    const rejeitadasCount = porStatus.REJECTED;
+    const canceladasCount = porStatus.CANCELED;
 
     const elRequestsPending = document.getElementById('requests-pending-count');
     if (elRequestsPending) elRequestsPending.innerText = pendentesCount;
@@ -118,8 +104,8 @@ function preencherKPIsHoras(summary) {
     const elProgressBarFill = document.getElementById('progress-bar-fill');
 
     if (elProgressPercentage) elProgressPercentage.innerText = `${porcentagem}%`;
-    if (elHoursCurrent) elHoursCurrent.innerText = `${summary.total_approved_hours || 0}h`;
-    if (elHoursMax) elHoursMax.innerText = `${summary.total_required_hours || 0}h`;
+    if (elHoursCurrent) elHoursCurrent.innerText = `${summary.total_approved_hours}h`;
+    if (elHoursMax) elHoursMax.innerText = `${summary.total_required_hours}h`;
     if (elProgressBarFill) elProgressBarFill.style.width = `${porcentagem}%`;
 
     // Badges Inferiores
@@ -136,65 +122,29 @@ function preencherKPIsHoras(summary) {
 
 // --- TABELA DE SOLICITAÇÕES RECENTES ---
 
-function preencherTabelaSolicitacoes(requests) {
+function preencherTabelaSolicitacoes(recentes, mapaTipos) {
     const tabelaBody = document.getElementById('recent-requests-table');
-    if (!tabelaBody || !Array.isArray(requests)) return;
+    if (!tabelaBody) return;
 
-    if (requests.length === 0) {
-        tabelaBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 20px; color: var(--text-muted);">Nenhuma solicitação encontrada.</td></tr>`;
+    if (recentes.length === 0) {
+        tabelaBody.innerHTML = '<tr><td colspan="6" class="tabela-mensagem">Nenhuma solicitação encontrada.</td></tr>';
         return;
     }
 
-    // Ordena as solicitações da mais recente para a mais antiga
-    const listaOrdenada = [...requests].sort((a, b) => {
-        const dataA = new Date(a.createdAt || a.created_at || a.submission_date || 0);
-        const dataB = new Date(b.createdAt || b.created_at || b.submission_date || 0);
-        return dataB - dataA;
-    });
-
-    // Filtra apenas as 5 últimas solicitações
-    const recentes = listaOrdenada.slice(0, 5);
-
-    const statusMap = {
-        'PENDING': { text: 'Pendente', badgeClass: 'badge-pending' },
-        'IN_REVIEW': { text: 'Em Análise', badgeClass: 'badge-in-review' },
-        'APPROVED': { text: 'Aprovada', badgeClass: 'badge-approved' },
-        'REJECTED': { text: 'Rejeitada', badgeClass: 'badge-rejected' },
-        'CANCELED': { text: 'Cancelada', badgeClass: 'badge-canceled' }
-    };
-
     tabelaBody.innerHTML = recentes.map(item => {
-        const id = item.id || item._id;
-        const dataRaw = item.createdAt || item.created_at || item.submission_date;
-        const dataFormatada = dataRaw 
-            ? new Date(dataRaw).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
-            : '---';
-
-        const rawStatus = (item.status || 'PENDING').toUpperCase();
-        const statusInfo = statusMap[rawStatus] || { text: rawStatus, badgeClass: 'badge-pending' };
-
-        const titulo = item.title || item.titulo || item.description || item.descricao || 'Solicitação de Horas';
-        const categoria = item.activity_type_name || item.activity_type?.name || item.category || 'Geral';
-        const horas = item.hours || item.requested_hours || item.horas || 0;
+        const status = STATUS[item.status];
+        const categoria = mapaTipos.get(item.activity_type_id) ?? 'Geral';
 
         return `
             <tr>
-                <td>
-                    <strong style="color: var(--text-primary); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 250px; display: block;">
-                        ${titulo}
-                    </strong>
-                </td>
-                <td style="color: var(--text-secondary);">${categoria}</td>
-                <td style="font-weight: 600; color: var(--text-primary);">${horas}h</td>
-                <td style="color: var(--text-secondary);">${dataFormatada}</td>
-                <td>
-                    <span class="status-badge ${statusInfo.badgeClass}">
-                       • ${statusInfo.text}
-                    </span>
-                </td>
+                <td><strong class="texto-truncado" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</strong></td>
+                <td>${escapeHtml(categoria)}</td>
+                <td><strong>${escapeHtml(item.requested_hours)}h</strong></td>
+                <td>${escapeHtml(formatarData(item.created_at))}</td>
+                <td><span class="status-badge ${status.badge}">• ${escapeHtml(status.label)}</span></td>
                 <td style="text-align: center;">
-                    <a href="detalhes-solicitacao.html?id=${id}" title="Ver Detalhes da Solicitação" style="color: var(--brand-blue, #0284c7); font-weight: 600;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="eye" aria-hidden="true" style="width: 18px; height: 18px;" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <a href="detalhes-solicitacao.html?id=${encodeURIComponent(item.id)}" title="Ver Detalhes da Solicitação" class="link-icone">
+                        <i data-lucide="eye"></i>
                     </a>
                 </td>
             </tr>
@@ -219,8 +169,8 @@ function renderizarGraficoEvolucao(approvedHoursList) {
     }
 
     const ctx = canvas.getContext('2d');
-    const labels = approvedHoursList.map(item => item.activity_type_name || 'Atividade');
-    const valores = approvedHoursList.map(item => item.approved_hours || 0);
+    const labels = approvedHoursList.map(item => item.activity_type_name);
+    const valores = approvedHoursList.map(item => item.approved_hours);
 
     evolutionChartInstance = new Chart(ctx, {
         type: 'bar',

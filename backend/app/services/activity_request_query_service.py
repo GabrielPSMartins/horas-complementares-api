@@ -4,19 +4,22 @@ from math import ceil
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm.interfaces import LoaderOption
 
+from app.core.exceptions import NotFoundError, PermissionDeniedError
 from app.models.activity_request import ActivityRequest, ActivityRequestStatus
 from app.models.student import Student
-from app.models.user import User
+from app.models.user import User, UserRole
 
 
 class ActivityRequestQueryService:
     """
-    Responsável pelas consultas de listagem de solicitações.
+    Responsável pelas consultas de solicitações.
 
     Isolado dos services de ação porque lida apenas com leitura e
-    filtros. Reutilizado pela listagem do aluno (escopo: student_id)
-    e pela do coordenador (escopo: course_id).
+    filtros. Reutilizado pela listagem do aluno (escopo: student_id),
+    pela do coordenador (escopo: course_id) e pelas consultas de uma
+    solicitação específica (detalhe, histórico e anexo).
     """
 
     def __init__(self, db: Session):
@@ -51,7 +54,7 @@ class ActivityRequestQueryService:
         if end_date is not None:
             query = query.where(ActivityRequest.activity_date <= end_date)
 
-        total = len(self.db.scalars(query).all())
+        total = self._count(query)
 
         query = (
             query.options(
@@ -108,12 +111,12 @@ class ActivityRequestQueryService:
             search_term = f"%{search}%"
             query = query.where(
                 or_(
-                    func.concat(Student.first_name, " ", Student.last_name).ilike(search_term),
+                    (Student.first_name + " " + Student.last_name).ilike(search_term),
                     Student.registration_number.ilike(search_term),
                 )
             )
 
-        total = len(self.db.scalars(query).all())
+        total = self._count(query)
 
         query = (
             query.options(
@@ -131,21 +134,48 @@ class ActivityRequestQueryService:
 
         return items, total
 
-    def get_by_id(self, activity_request_id: uuid.UUID) -> ActivityRequest | None:
-        return self.db.scalar(
+    def get_visible_to(
+        self,
+        activity_request_id: uuid.UUID,
+        current_user: User,
+        *options: LoaderOption,
+    ) -> ActivityRequest:
+        """
+        Busca uma solicitação que o usuário pode ver: o aluno dono ou o
+        coordenador do curso do aluno. `options` permite carregar junto os
+        relacionamentos que cada rota precisa (histórico, anexos...).
+        """
+        activity_request = self.db.scalar(
             select(ActivityRequest)
             .options(
-                selectinload(ActivityRequest.attachments),
                 selectinload(ActivityRequest.student).selectinload(Student.course),
-                selectinload(ActivityRequest.in_review_by).selectinload(User.coordinator_profile),
-                selectinload(ActivityRequest.reviewer).selectinload(User.coordinator_profile),
+                *options,
             )
             .where(ActivityRequest.id == activity_request_id)
         )
 
-    @staticmethod
-    def get_student_by_user_id(db: Session, user_id: uuid.UUID) -> Student | None:
-        return db.scalar(select(Student).where(Student.user_id == user_id))
+        if activity_request is None:
+            raise NotFoundError("Solicitação não encontrada.")
+
+        is_owner_student = (
+            current_user.role == UserRole.STUDENT
+            and activity_request.student.user_id == current_user.id
+        )
+        is_course_coordinator = (
+            current_user.role == UserRole.COORDINATOR
+            and activity_request.student.course.coordinator_id == current_user.id
+        )
+
+        if not (is_owner_student or is_course_coordinator):
+            raise PermissionDeniedError("Você não possui permissão para acessar esta solicitação.")
+
+        return activity_request
+
+    def _count(self, query) -> int:
+        """Conta as linhas da consulta no banco (COUNT), sem carregá-las."""
+        return self.db.scalar(
+            select(func.count()).select_from(query.order_by(None).subquery())
+        ) or 0
 
     @staticmethod
     def calculate_total_pages(total: int, page_size: int) -> int:

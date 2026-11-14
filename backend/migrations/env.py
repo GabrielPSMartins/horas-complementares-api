@@ -4,7 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.db.base import Base
-import app.db.import_models
+import app.models  # noqa: F401  (registra todos os models no Base.metadata)
 from config.settings import settings
 
 
