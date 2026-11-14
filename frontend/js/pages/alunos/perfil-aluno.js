@@ -1,6 +1,6 @@
 import { protegerRota } from '../../auth.js';
 import { carregarDadosPerfil } from '../../utils/userprofile.js';
-import { obterRelatorioAluno, alterarSenha } from '../../api.js';
+import { obterMeuPerfilAluno, alterarSenha } from '../../api.js';
 
 protegerRota();
 
@@ -33,15 +33,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function preencherCardPerfil() {
     try {
-        const relatorio = await obterRelatorioAluno();
-        
-        const student = relatorio?.student || {};
-        const course = relatorio?.course || {};
+        const student = await obterMeuPerfilAluno();
 
-        const nome = student.name || 'Aluno';
-        const email = student.email || '---';
-        const matricula = student.registration_number || '---';
-        const curso = course.name || 'Sistemas de Informação';
+        const nome = student.name;
+        const email = student.email;
+        const matricula = student.registration_number;
+        const curso = student.course_name;
 
         const elAvatar = document.getElementById('perfil-avatar');
         if (elAvatar) elAvatar.textContent = obterInicial(nome);
@@ -59,7 +56,7 @@ async function preencherCardPerfil() {
         if (elMatricula) elMatricula.textContent = matricula;
 
     } catch (err) {
-        console.error('Erro ao buscar dados do relatório do aluno:', err);
+        console.error('Erro ao buscar dados do perfil do aluno:', err);
     }
 }
 

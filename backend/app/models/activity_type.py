@@ -5,7 +5,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 
 
 class ActivityType(Base):
@@ -21,6 +21,7 @@ class ActivityType(Base):
         UUID(as_uuid=True),
         ForeignKey("courses.id"),
         nullable=False,
+        index=True,
     )
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -35,13 +36,13 @@ class ActivityType(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     course = relationship(

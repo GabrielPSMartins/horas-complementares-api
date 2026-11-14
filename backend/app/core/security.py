@@ -1,21 +1,32 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
+import jwt
 
 from config.settings import settings
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# O bcrypt só considera os primeiros 72 bytes da senha. A biblioteca usada
+# antes (passlib) truncava nesse limite; mantemos o mesmo comportamento para
+# que as senhas já cadastradas continuem válidas.
+BCRYPT_MAX_BYTES = 72
+
+
+def _password_bytes(password: str) -> bytes:
+    return password.encode("utf-8")[:BCRYPT_MAX_BYTES]
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(_password_bytes(password), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
-    return pwd_context.verify(plain_password, password_hash)
+    try:
+        return bcrypt.checkpw(_password_bytes(plain_password), password_hash.encode("utf-8"))
+    except ValueError:
+        # Hash em formato inválido no banco.
+        return False
 
 
 def create_access_token(
@@ -49,5 +60,5 @@ def decode_access_token(token: str) -> dict[str, Any]:
             settings.secret_key,
             algorithms=[settings.algorithm],
         )
-    except JWTError as exc:
+    except jwt.PyJWTError as exc:
         raise ValueError("Invalid token") from exc

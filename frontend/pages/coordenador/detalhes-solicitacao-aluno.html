@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'">
     <title>Detalhes da Solicitação - Horas Complementares</title>
     
     <!-- CSS Globais -->
@@ -10,7 +11,7 @@
     <link rel="stylesheet" href="../../css/layout.css">
     <link rel="stylesheet" href="../../css/componentes.css">
     
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -195,7 +196,7 @@
                             </div>
                         </div>
 
-                        <a href="#" id="btn-download-anexo" download style="display: none; align-items: center; gap: 6px; background-color: #ffffff; border: 1px solid #dbeafe; color: #2563eb; font-size: 13px; font-weight: 700; padding: 6px 16px; border-radius: 20px; text-decoration: none;">
+                        <a href="#" id="btn-download-anexo" class="hidden" style="display: inline-flex; align-items: center; gap: 6px; background-color: #ffffff; border: 1px solid #dbeafe; color: #2563eb; font-size: 13px; font-weight: 700; padding: 6px 16px; border-radius: 20px; text-decoration: none;">
                             <i data-lucide="download" style="width: 15px; height: 15px;"></i>
                             <span>Baixar Comprovante</span>
                         </a>
@@ -203,8 +204,59 @@
                 </div>
 
                 <!-- 3. CARD AÇÕES DISPONÍVEIS -->
-                <div class="ui-card" style="margin-bottom: 20px; padding: 20px; border-radius: 16px;" id="card-acoes-disponiveis">
-                    <!-- Gerenciado totalmente via JavaScript -->
+                <div class="ui-card hidden" style="margin-bottom: 20px; padding: 20px; border-radius: 16px;" id="card-acoes-disponiveis">
+                    <h3 class="acoes-titulo">Ações disponíveis</h3>
+
+                    <!-- Pendente: o coordenador precisa assumir antes de analisar -->
+                    <div id="acao-assumir" class="acao-assumir hidden">
+                        <div class="acao-assumir-info">
+                            <div class="acao-assumir-icone">
+                                <i data-lucide="alert-circle"></i>
+                            </div>
+                            <div>
+                                <strong>Solicitação sem responsável</strong>
+                                <span>Assuma para poder analisar.</span>
+                            </div>
+                        </div>
+                        <button id="btn-assumir-solicitacao" type="button" class="btn-assumir">Assumir</button>
+                    </div>
+
+                    <!-- Em análise: aprovar ou rejeitar -->
+                    <div id="acao-analisar" class="hidden">
+                        <div class="acao-responsavel">
+                            <i data-lucide="check-circle"></i>
+                            <span>Você assumiu esta solicitação como responsável.</span>
+                        </div>
+
+                        <div class="acao-abas">
+                            <button type="button" id="tab-btn-aprovar" class="acao-aba acao-aba--aprovar">
+                                <i data-lucide="check-circle"></i>
+                                <span>Aprovar</span>
+                            </button>
+                            <button type="button" id="tab-btn-rejeitar" class="acao-aba acao-aba--rejeitar">
+                                <i data-lucide="x-circle"></i>
+                                <span>Rejeitar</span>
+                            </button>
+                        </div>
+
+                        <div id="form-container-aprovar" class="acao-form acao-form--aprovar hidden">
+                            <label for="input-horas-efetivas">Horas efetivamente aprovadas <span class="required">*</span></label>
+                            <input type="number" id="input-horas-efetivas" min="0">
+                            <button type="button" id="btn-confirmar-aprovacao" class="btn-confirmar btn-confirmar--aprovar">
+                                <i data-lucide="check"></i>
+                                <span>Confirmar aprovação</span>
+                            </button>
+                        </div>
+
+                        <div id="form-container-rejeitar" class="acao-form acao-form--rejeitar hidden">
+                            <label for="textarea-motivo-rejeicao">Justificativa <span class="required">*</span></label>
+                            <textarea id="textarea-motivo-rejeicao" rows="3" maxlength="2000" placeholder="Descreva o motivo para o aluno poder corrigir e reenviar..."></textarea>
+                            <button type="button" id="btn-confirmar-rejeicao" class="btn-confirmar btn-confirmar--rejeitar">
+                                <i data-lucide="x-circle"></i>
+                                <span>Confirmar rejeição</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 4. CARD HISTÓRICO / TIMELINE -->
@@ -213,9 +265,7 @@
                         Histórico
                     </h3>
                     
-                    <div id="detalhe-timeline" style="display: flex; flex-direction: column; gap: 16px;">
-                        <!-- Renderizado via JS -->
-                    </div>
+                    <div id="detalhe-timeline" class="timeline"></div>
                 </div>
 
             </div>

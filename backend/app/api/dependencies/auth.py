@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -16,10 +18,8 @@ def get_current_user(
 ) -> User:
     try:
         payload = decode_access_token(token)
-        user_id = payload.get("sub")
-
-        if not user_id:
-            raise ValueError("Missing subject")
+        # uuid.UUID também lança ValueError se o "sub" não for um UUID válido.
+        user_id = uuid.UUID(str(payload.get("sub")))
 
     except ValueError:
         raise HTTPException(

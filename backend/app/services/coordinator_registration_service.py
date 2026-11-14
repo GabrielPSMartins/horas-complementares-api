@@ -1,17 +1,19 @@
+import logging
 import re
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
+from app.core.exceptions import ConflictError, NotFoundError
 from app.models.coordinator import Coordinator
 from app.models.course import Course
 from app.models.user import User, UserRole
 
 
-class CoordinatorRegistrationError(Exception):
-    pass
+logger = logging.getLogger(__name__)
 
 
 class CoordinatorRegistrationService:
@@ -33,10 +35,11 @@ class CoordinatorRegistrationService:
         registration_number: str,
         course_id: uuid.UUID,
     ) -> Coordinator:
+        email = self._normalize_email(email)
         course = self.db.scalar(select(Course).where(Course.id == course_id))
 
         if not course:
-            raise CoordinatorRegistrationError("Curso informado não encontrado.")
+            raise NotFoundError("Curso informado não encontrado.")
 
         self._validate_uniqueness(
             email=email,
@@ -56,25 +59,38 @@ class CoordinatorRegistrationService:
             must_change_password=True,
         )
 
-        self.db.add(user)
-        self.db.flush()
+        try:
+            self.db.add(user)
+            self.db.flush()
 
-        coordinator = Coordinator(
-            user_id=user.id,
-            first_name=first_name.strip(),
-            last_name=last_name.strip(),
-            cpf=clean_cpf,
-            registration_number=registration_number,
-            is_active=True,
-        )
+            coordinator = Coordinator(
+                user_id=user.id,
+                first_name=first_name.strip(),
+                last_name=last_name.strip(),
+                cpf=clean_cpf,
+                registration_number=registration_number,
+                is_active=True,
+            )
 
-        self.db.add(coordinator)
-        self.db.flush()
+            self.db.add(coordinator)
+            self.db.flush()
 
-        course.coordinator_id = user.id
+            course.coordinator_id = user.id
 
-        self.db.commit()
+            self.db.commit()
+        except IntegrityError as exc:
+            # A checagem prévia não cobre requisições simultâneas: a constraint
+            # UNIQUE do banco é a garantia final.
+            self.db.rollback()
+            raise ConflictError("Já existe um cadastro com estes dados (e-mail, CPF ou matrícula).") from exc
+
         self.db.refresh(coordinator)
+
+        logger.info(
+            "coordinator_registered | coordinator_id=%s course_id=%s",
+            coordinator.id,
+            course.id,
+        )
 
         return coordinator
 
@@ -87,21 +103,25 @@ class CoordinatorRegistrationService:
     ) -> None:
         clean_cpf = self._only_digits(cpf)
 
-        if self.db.scalar(select(User).where(User.email == email)):
-            raise CoordinatorRegistrationError("Já existe um usuário com este email.")
+        if self.db.scalar(select(User).where(func.lower(User.email) == email)):
+            raise ConflictError("Já existe um usuário com este email.")
 
         if self.db.scalar(
             select(Coordinator).where(Coordinator.registration_number == registration_number)
         ):
-            raise CoordinatorRegistrationError("Já existe um coordenador com esta matrícula.")
+            raise ConflictError("Já existe um coordenador com esta matrícula.")
 
         if self.db.scalar(select(Coordinator).where(Coordinator.cpf == clean_cpf)):
-            raise CoordinatorRegistrationError("Já existe um coordenador com este CPF.")
+            raise ConflictError("Já existe um coordenador com este CPF.")
 
         if self.db.scalar(select(User).where(User.username == registration_number)):
-            raise CoordinatorRegistrationError(
+            raise ConflictError(
                 "Já existe um usuário com este nome de usuário (matrícula)."
             )
+
+    @staticmethod
+    def _normalize_email(email: str) -> str:
+        return email.strip().lower()
 
     @staticmethod
     def _only_digits(value: str) -> str:

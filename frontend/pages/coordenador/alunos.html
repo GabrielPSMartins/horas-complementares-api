@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'">
     <title>Alunos - Horas Complementares</title>
     
     <!-- Folhas de Estilo Oficiais do Projeto -->
@@ -11,7 +12,7 @@
     <link rel="stylesheet" href="../../css/componentes.css">
     
     <!-- Ícones Lucide -->
-    <script src="https://unpkg.com/lucide@latest"></script>   
+    <script src="https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -118,7 +119,7 @@
                         </div>
 
                         <div style="overflow-x: auto; width: 100%;">
-                            <table class="custom-table" style="width: 100%; margin: 0;">
+                            <table class="custom-table tabela-alunos" style="width: 100%; margin: 0;">
                                 <thead>
                                     <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0;">
                                         <th style="padding: 16px 28px; font-weight: 800; color: #2563eb; text-transform: uppercase; font-size: 0.75rem;">ALUNO</th>
@@ -146,8 +147,6 @@
     <!-- Scripts da Aplicação -->
     <script type="module" src="../../js/pages/coordenador/alunos.js"></script>
 
-    <script>
-        if (window.lucide) lucide.createIcons();
-    </script>
+    <script src="../../js/lucide-init.js"></script>
 </body>
 </html>

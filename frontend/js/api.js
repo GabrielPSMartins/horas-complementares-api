@@ -1,9 +1,9 @@
-import { API_BASE_URL } from './config.js';
+import { API_BASE_URL, LOGIN_URL } from './config.js';
 
 // Retorna os cabeçalhos padrão com o Token de Autenticação
 function getHeaders(isFormData = false) {
     const token = localStorage.getItem('access_token');
-    
+
     const headers = {
         'Authorization': `Bearer ${token}`
     };
@@ -16,64 +16,54 @@ function getHeaders(isFormData = false) {
     return headers;
 }
 
-// Busca o relatório do próprio aluno logado (/students/me/report)
-export async function obterRelatorioAluno() {
-    const response = await fetch(`${API_BASE_URL}/students/me/report`, {
-        headers: getHeaders()
+// Encerra a sessão local e volta para o login (token ausente, expirado ou inválido)
+function encerrarSessao() {
+    localStorage.clear();
+    window.location.replace(LOGIN_URL);
+}
+
+function montarQueryString(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return queryString ? `?${queryString}` : '';
+}
+
+/**
+ * Faz uma requisição autenticada à API e trata os erros de forma única:
+ * - 401: limpa a sessão, redireciona para o login e lança Error('UNAUTHORIZED');
+ * - demais erros: lança Error com a mensagem `detail` devolvida pela API.
+ * Por padrão devolve o JSON da resposta; com `raw: true` devolve a Response (ex.: PDF).
+ */
+async function request(path, { method = 'GET', body, isForm = false, raw = false } = {}) {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+        method,
+        headers: getHeaders(isForm),
+        body: isForm || body === undefined ? body : JSON.stringify(body)
     });
 
     if (response.status === 401) {
+        encerrarSessao();
         throw new Error('UNAUTHORIZED');
     }
 
     if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Erro na requisição: ${response.status}`);
     }
 
+    if (raw) return response;
+    if (response.status === 204) return null;
     return await response.json();
 }
 
-// Busca o relatório detalhado de um aluno específico por ID (/students/{student_id}/report)
-export async function obterRelatorioAlunoPorId(studentId) {
-    const response = await fetch(`${API_BASE_URL}/students/${studentId}/report`, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) {
-        throw new Error('UNAUTHORIZED');
-    }
-
-    if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
-    }
-
-    return await response.json();
-}
-
-// Abre o relatório PDF de um aluno em nova aba (/students/{student_id}/report/pdf)
-export async function exportarRelatorioPdfAlunoPorId(studentId) {
+// Abre um PDF da API em uma aba nova. A aba é aberta antes da requisição para não ser bloqueada pelo navegador.
+async function abrirPdfEmNovaAba(path) {
     const novaAba = window.open('', '_blank');
 
     try {
-        const response = await fetch(`${API_BASE_URL}/students/${studentId}/report/pdf`, {
-            method: 'GET',
-            headers: getHeaders()
-        });
-
-        if (response.status === 401) {
-            if (novaAba) novaAba.close();
-            throw new Error('UNAUTHORIZED');
-        }
-
-        if (!response.ok) {
-            if (novaAba) novaAba.close();
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.detail || errorData.message || 'Erro ao gerar visualização do relatório PDF.');
-        }
-
+        const response = await request(path, { raw: true });
         const blob = await response.blob();
         const fileUrl = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-        
+
         if (novaAba) {
             novaAba.location.href = fileUrl;
         } else {
@@ -85,108 +75,70 @@ export async function exportarRelatorioPdfAlunoPorId(studentId) {
     }
 }
 
-// Busca o relatório do coordenador (/coordinator/me/report)
-export async function obterRelatorioCoordenador() {
-    const response = await fetch(`${API_BASE_URL}/coordinator/me/report`, {
-        headers: getHeaders()
-    });
+// Busca o relatório do próprio aluno logado (/students/me/report)
+export function obterRelatorioAluno() {
+    return request('/students/me/report');
+}
 
-    if (response.status === 401) {
-        throw new Error('UNAUTHORIZED');
-    }
+// Busca o relatório detalhado de um aluno específico por ID (/students/{student_id}/report)
+export function obterRelatorioAlunoPorId(studentId) {
+    return request(`/students/${studentId}/report`);
+}
 
-    if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
-    }
+// Abre o relatório PDF de um aluno em nova aba (/students/{student_id}/report/pdf)
+export function exportarRelatorioPdfAlunoPorId(studentId) {
+    return abrirPdfEmNovaAba(`/students/${studentId}/report/pdf`);
+}
 
-    return await response.json();
+// Busca o perfil do aluno logado (/students/me)
+export function obterMeuPerfilAluno() {
+    return request('/students/me');
+}
+
+// Busca os alunos do curso do coordenador com o resumo de horas (/students), aceitando search, semester, page e page_size
+export function obterAlunosCoordenador(params = {}) {
+    return request(`/students${montarQueryString(params)}`);
+}
+
+// Busca todos os alunos do curso do coordenador percorrendo as páginas da API (page_size máximo: 100)
+export async function obterTodosAlunosCoordenador(params = {}) {
+    const todos = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+        const res = await obterAlunosCoordenador({ ...params, page, page_size: 100 });
+        todos.push(...res.items);
+        totalPages = res.total_pages;
+        page++;
+    } while (page <= totalPages);
+
+    return todos;
 }
 
 // Busca as solicitações do aluno (/activity-requests/me) aceitando filtros
-export async function obterMinhasSolicitacoes(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = `${API_BASE_URL}/activity-requests/me${queryString ? `?${queryString}` : ''}`;
-
-    const response = await fetch(endpoint, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) {
-        throw new Error('UNAUTHORIZED');
-    }
-
-    if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
-    }
-
-    return await response.json();
+export function obterMinhasSolicitacoes(params = {}) {
+    return request(`/activity-requests/me${montarQueryString(params)}`);
 }
 
 // Busca a lista de tipos de atividades (/activity-types)
-export async function obterTiposAtividades() {
-    const response = await fetch(`${API_BASE_URL}/activity-types`, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) {
-        throw new Error('UNAUTHORIZED');
-    }
-
-    if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
-    }
-
-    return await response.json();
+export function obterTiposAtividades() {
+    return request('/activity-types');
 }
 
 // Cria uma nova solicitação enviando FormData (Com Upload de Arquivo)
-export async function criarSolicitacao(formData) {
-    const response = await fetch(`${API_BASE_URL}/activity-requests`, {
-        method: 'POST',
-        headers: getHeaders(true), 
-        body: formData
-    });
-
-    if (response.status === 401) {
-        throw new Error('UNAUTHORIZED');
-    }
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erro ao criar solicitação: ${response.status}`);
-    }
-
-    return await response.json();
+export function criarSolicitacao(formData) {
+    return request('/activity-requests', { method: 'POST', body: formData, isForm: true });
 }
 
 // Busca os dados do dashboard do coordenador (inclui resumo e alunos)
-export async function obterDashboardCoordenador(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = `${API_BASE_URL}/coordinator/dashboard${queryString ? `?${queryString}` : ''}`;
-
-    const response = await fetch(endpoint, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-    return await response.json();
+export function obterDashboardCoordenador(params = {}) {
+    return request(`/coordinator/dashboard${montarQueryString(params)}`);
 }
 
 // Busca solicitações do coordenador (/activity-requests/coordinator)
-export async function obterSolicitacoesCoordenador(params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const endpoint = `${API_BASE_URL}/activity-requests/coordinator${queryString ? `?${queryString}` : ''}`;
-
-    const response = await fetch(endpoint, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-    return await response.json();
+export function obterSolicitacoesCoordenador(params = {}) {
+    return request(`/activity-requests/coordinator${montarQueryString(params)}`);
 }
 
 // Busca todas as solicitações do coordenador percorrendo as páginas da API (page_size máximo: 100)
@@ -197,8 +149,8 @@ export async function obterTodasSolicitacoesCoordenador(params = {}) {
 
     do {
         const res = await obterSolicitacoesCoordenador({ ...params, page, page_size: 100 });
-        todas.push(...(res.items || []));
-        totalPages = res.total_pages || 1;
+        todas.push(...res.items);
+        totalPages = res.total_pages;
         page++;
     } while (page <= totalPages);
 
@@ -206,94 +158,33 @@ export async function obterTodasSolicitacoesCoordenador(params = {}) {
 }
 
 // Busca uma solicitação específica por ID (/activity-requests/{id}), para o aluno dono ou o coordenador do curso
-export async function obterSolicitacaoPorId(id) {
-    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}`, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Solicitação não encontrada');
-    }
-
-    return await response.json();
+export function obterSolicitacaoPorId(id) {
+    return request(`/activity-requests/${id}`);
 }
 
 // Busca o histórico de alterações da solicitação (/activity-requests/{id}/history)
-export async function obterHistoricoSolicitacao(id) {
-    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/history`, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) throw new Error(`Erro na requisição: ${response.status}`);
-
-    return await response.json();
+export function obterHistoricoSolicitacao(id) {
+    return request(`/activity-requests/${id}/history`);
 }
 
 // Assume a responsabilidade de uma solicitação (/activity-requests/{id}/assume)
-export async function assumirSolicitacao(id) {
-    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/assume`, {
-        method: 'PATCH',
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erro ao assumir solicitação: ${response.status}`);
-    }
-
-    return await response.json();
+export function assumirSolicitacao(id) {
+    return request(`/activity-requests/${id}/assume`, { method: 'PATCH' });
 }
 
 // Avalia a solicitação (Aprova ou Rejeita) (/activity-requests/{id}/review)
-export async function revisarSolicitacao(id, dadosRevisao) {
-    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/review`, {
-        method: 'PATCH',
-        headers: getHeaders(),
-        body: JSON.stringify(dadosRevisao)
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erro ao revisar solicitação: ${response.status}`);
-    }
-
-    return await response.json();
+export function revisarSolicitacao(id, dadosRevisao) {
+    return request(`/activity-requests/${id}/review`, { method: 'PATCH', body: dadosRevisao });
 }
 
 // Cancela a solicitação (/activity-requests/{id}/cancel)
-export async function cancelarSolicitacao(id) {
-    const response = await fetch(`${API_BASE_URL}/activity-requests/${id}/cancel`, {
-        method: 'PATCH',
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erro ao cancelar solicitação: ${response.status}`);
-    }
-
-    return await response.json();
+export function cancelarSolicitacao(id) {
+    return request(`/activity-requests/${id}/cancel`, { method: 'PATCH' });
 }
 
 // Gera o link temporário de download do anexo (/activity-requests/{id}/attachments/{idAnexo}/download)
-export async function obterUrlDownloadAnexo(idSolicitacao, idAnexo) {
-    const response = await fetch(`${API_BASE_URL}/activity-requests/${idSolicitacao}/attachments/${idAnexo}/download`, {
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) throw new Error('UNAUTHORIZED');
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || `Erro ao obter link do anexo: ${response.status}`);
-    }
-
-    return await response.json();
+export function obterUrlDownloadAnexo(idSolicitacao, idAnexo) {
+    return request(`/activity-requests/${idSolicitacao}/attachments/${idAnexo}/download`);
 }
 
 // Abre o anexo em nova aba usando o link temporário gerado pelo backend
@@ -313,61 +204,25 @@ export async function abrirAnexo(idSolicitacao, idAnexo) {
     }
 }
 
-export async function obterPerfilCoordenador() {
-    const response = await fetch(`${API_BASE_URL}/coordinators/me`, {
-        method: 'GET',
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) {
-        throw new Error('UNAUTHORIZED');
-    }
-
-    if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
-    }
-
-    return await response.json();
+// Busca o perfil do coordenador logado (/coordinators/me)
+export function obterPerfilCoordenador() {
+    return request('/coordinators/me');
 }
 
 // Altera a senha do usuário (/auth/change-password)
-export async function alterarSenha(senhaAtual, novaSenha) {
-    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+export function alterarSenha(senhaAtual, novaSenha) {
+    return request('/auth/change-password', {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({
+        body: {
             current_password: senhaAtual,
             new_password: novaSenha
-        })
+        }
     });
-
-    if (response.status === 401) {
-        throw new Error('Sessão expirada. Faça login novamente.');
-    }
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || 'Erro ao alterar a senha. Verifique a senha atual.');
-    }
-
-    return await response.json();
 }
 
 // Exporta o relatório do próprio aluno logado em formato PDF (/students/me/report/pdf)
 export async function exportarRelatorioPdf() {
-    const response = await fetch(`${API_BASE_URL}/students/me/report/pdf`, {
-        method: 'GET',
-        headers: getHeaders()
-    });
-
-    if (response.status === 401) {
-        throw new Error('UNAUTHORIZED');
-    }
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || 'Erro ao exportar relatório PDF.');
-    }
+    const response = await request('/students/me/report/pdf', { raw: true });
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);

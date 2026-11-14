@@ -1,0 +1,14 @@
+# Configurações locais de editor/IDE
+.vscode/
+.idea/
+
+# Variáveis de ambiente (o modelo versionado é backend/.env.example)
+.env
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Python (regras completas em backend/.gitignore)
+__pycache__/
+.venv/

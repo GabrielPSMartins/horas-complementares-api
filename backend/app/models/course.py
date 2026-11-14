@@ -1,15 +1,18 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 
 
 class Course(Base):
     __tablename__ = "courses"
+    __table_args__ = (
+        CheckConstraint("total_semesters >= 1", name="ck_courses_total_semesters_positive"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -21,6 +24,7 @@ class Course(Base):
 
     total_required_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=200)
     max_extra_hours: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    total_semesters: Mapped[int] = mapped_column(Integer, nullable=False, default=8, server_default="8")
 
     coordinator_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -33,13 +37,13 @@ class Course(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     coordinator = relationship(

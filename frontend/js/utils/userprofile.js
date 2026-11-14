@@ -1,13 +1,13 @@
 // userprofile.js
-import { obterRelatorioAluno, obterPerfilCoordenador } from '../api.js';
+import { obterMeuPerfilAluno, obterPerfilCoordenador } from '../api.js';
 
 // Busca as informações do aluno na API e preenche os elementos da tela
 export async function carregarDadosPerfil() {
     try {
-        const report = await obterRelatorioAluno();
-        
-        if (report && report.student) {
-            preencherCamposPerfil(report.student);
+        const student = await obterMeuPerfilAluno();
+
+        if (student) {
+            preencherCamposPerfil(student);
         }
     } catch (error) {
         console.error('Erro ao carregar informações do perfil:', error);
@@ -18,9 +18,9 @@ export async function carregarDadosPerfil() {
 export function preencherCamposPerfil(student) {
     if (!student) return;
 
-    const nomeCompleto = student.name || 'Aluno';
-    const matriculaUser = student.registration_number || '---';
-    const emailUser = student.email || '---';
+    const nomeCompleto = student.name;
+    const matriculaUser = student.registration_number;
+    const emailUser = student.email ?? '---';
 
     const partesNome = nomeCompleto.trim().split(' ');
     const primeiroNome = partesNome[0] || 'Aluno';
@@ -80,7 +80,7 @@ export async function carregarDadosPerfilCoordenador() {
 export function preencherCamposCoordenador(coordinator) {
     if (!coordinator) return;
 
-    const nomeCompleto = coordinator.first_name + ' ' + coordinator.last_name || 'Coordenador';
+    const nomeCompleto = coordinator.full_name;
     const partesNome = nomeCompleto.trim().split(' ');
     const primeiroNome = partesNome[0] || 'Coordenador';
     

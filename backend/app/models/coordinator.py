@@ -5,7 +5,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base
+from app.db.base import Base, utc_now
 
 
 class Coordinator(Base):
@@ -34,13 +34,13 @@ class Coordinator(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
+        default=utc_now,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utc_now,
+        onupdate=utc_now,
     )
 
     user = relationship(
@@ -51,3 +51,17 @@ class Coordinator(Base):
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def email(self) -> str:
+        return self.user.email
+
+    @property
+    def username(self) -> str:
+        return self.user.username
+
+    @property
+    def course_id(self) -> uuid.UUID | None:
+        """Curso coordenado (o MVP vincula um curso por coordenador)."""
+        courses = self.user.coordinated_courses
+        return courses[0].id if courses else None

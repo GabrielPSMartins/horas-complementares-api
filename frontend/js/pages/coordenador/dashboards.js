@@ -1,178 +1,107 @@
 import { protegerRota } from '../../auth.js';
-import { obterTodasSolicitacoesCoordenador } from '../../api.js';
+import { obterTodasSolicitacoesCoordenador, obterTodosAlunosCoordenador } from '../../api.js';
+import { escapeHtml } from '../../utils/html.js';
 import { carregarDadosPerfilCoordenador } from '../../utils/userprofile.js';
+import { obterMapaTiposAtividade } from '../../utils/solicitacao.js';
 
 let chartStatusInstance = null;
 let chartCategoriasInstance = null;
-let mapaTiposGlobal = null;
-let todasSolicitacoesCache = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-    carregarDadosPerfilCoordenador();
-});
+// Dados carregados uma única vez; os filtros de semestre trabalham sobre eles
+/** @type {import('../../utils/solicitacao.js').SolicitacaoCoordenador[]} */
+let todasSolicitacoes = [];
+let todosAlunos = [];
+let mapaTipos = new Map();
 
 document.addEventListener('DOMContentLoaded', async () => {
     protegerRota();
+    carregarDadosPerfilCoordenador();
     configurarFiltrosSemestre();
-    
-    await atualizarDashboard('todos');
+
+    try {
+        [todasSolicitacoes, todosAlunos, mapaTipos] = await Promise.all([
+            obterTodasSolicitacoesCoordenador(),
+            obterTodosAlunosCoordenador(),
+            obterMapaTiposAtividade()
+        ]);
+    } catch (erro) {
+        console.error('Erro ao carregar o dashboard:', erro);
+        document.getElementById('lista-aguardam-analise').innerHTML = '<p class="lista-vazia tabela-mensagem--erro">Erro ao carregar dados.</p>';
+        return;
+    }
+
+    atualizarBotoesSemestreDisponiveis();
+    atualizarDashboard('todos');
 });
 
 function configurarFiltrosSemestre() {
     const botoes = document.querySelectorAll('.btn-semester');
 
     botoes.forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
             if (e.currentTarget.disabled) return;
 
-            const botaoClicado = e.currentTarget;
-
             botoes.forEach(b => b.classList.remove('active'));
-            botaoClicado.classList.add('active');
+            e.currentTarget.classList.add('active');
 
-            const semestre = botaoClicado.getAttribute('data-semestre');
-            await atualizarDashboard(semestre);
+            atualizarDashboard(e.currentTarget.getAttribute('data-semestre'));
         });
     });
 }
 
-function atualizarBotoesSemestreDisponiveis(solicitacoes) {
-    const semestresDisponiveis = new Set();
+// Desabilita os semestres sem alunos e sem solicitações
+function atualizarBotoesSemestreDisponiveis() {
+    const semestresComDados = new Set([
+        ...todasSolicitacoes.map(item => String(item.student_semester)),
+        ...todosAlunos.map(aluno => String(aluno.current_semester))
+    ]);
 
-    solicitacoes.forEach(item => {
-        if (item.semestre_real !== undefined && item.semestre_real !== null) {
-            const semNum = String(item.semestre_real).replace(/[^0-9]/g, '');
-            if (semNum) semestresDisponiveis.add(semNum);
-        }
-    });
+    document.querySelectorAll('.btn-semester').forEach(btn => {
+        const semestre = btn.getAttribute('data-semestre');
+        if (semestre === 'todos') return;
 
-    const botoes = document.querySelectorAll('.btn-semester');
-    botoes.forEach(btn => {
-        const semAttr = btn.getAttribute('data-semestre');
-        if (semAttr === 'todos') {
-            btn.disabled = false;
-        } else {
-            const existe = semestresDisponiveis.has(String(semAttr));
-            btn.disabled = !existe;
-            if (!existe) {
-                btn.title = "Nenhuma solicitação encontrada para este semestre";
-            } else {
-                btn.removeAttribute('title');
-            }
-        }
+        btn.disabled = !semestresComDados.has(semestre);
+        btn.title = btn.disabled ? 'Nenhuma solicitação encontrada para este semestre' : '';
     });
 }
 
-async function carregarTodasSolicitacoes() {
-    if (todasSolicitacoesCache) return todasSolicitacoesCache;
+function atualizarDashboard(semestre) {
+    const doSemestre = semestre === 'todos'
+        ? { solicitacoes: todasSolicitacoes, alunos: todosAlunos }
+        : {
+            solicitacoes: todasSolicitacoes.filter(item => String(item.student_semester) === semestre),
+            alunos: todosAlunos.filter(aluno => String(aluno.current_semester) === semestre)
+        };
 
-    try {
-        const lista = await obterTodasSolicitacoesCoordenador();
+    const porStatus = contarPorStatus(doSemestre.solicitacoes);
 
-        const solicitacoesCompletas = lista.map(item => {
-            const semestreEncontrado = item.student?.current_semester 
-                ?? item.student_semester 
-                ?? item.semester 
-                ?? item.current_semester;
-
-            return {
-                ...item,
-                semestre_real: semestreEncontrado
-            };
-        });
-
-        todasSolicitacoesCache = solicitacoesCompletas;
-        return solicitacoesCompletas;
-
-    } catch (err) {
-        console.error("Erro ao carregar solicitações:", err);
-        return [];
-    }
+    renderizarCardsMetricas(doSemestre.solicitacoes.length, porStatus, doSemestre.alunos);
+    renderizarGraficoStatus(porStatus);
+    renderizarSolicitacoesPendentes(doSemestre.solicitacoes);
+    renderizarProgressoAlunos(doSemestre.alunos);
+    renderizarGraficoCategorias(doSemestre.solicitacoes);
 }
 
-async function atualizarDashboard(semestre = 'todos') {
-    const containerPendentes = document.getElementById('lista-aguardam-analise');
-    const containerAlunos = document.getElementById('lista-progresso-alunos');
-
-    if (containerPendentes) {
-        containerPendentes.innerHTML = '<p style="color: var(--text-secondary); text-align: center; font-size: 0.875rem;">A carregar dados...</p>';
-    }
-
-    try {
-        const tiposMap = await obterMapaTiposAtividade();
-        const todasSolicitacoes = await carregarTodasSolicitacoes();
-
-        atualizarBotoesSemestreDisponiveis(todasSolicitacoes);
-
-        let solicitacoesFiltradas = todasSolicitacoes;
-
-        if (semestre !== 'todos') {
-            solicitacoesFiltradas = todasSolicitacoes.filter(item => {
-                if (item.semestre_real === undefined || item.semestre_real === null) return false;
-                
-                const semItem = String(item.semestre_real).replace(/[^0-9]/g, '');
-                const semAlvo = String(semestre).replace(/[^0-9]/g, '');
-                return semItem === semAlvo;
-            });
-        }
-
-        renderizarCardsMetricas(solicitacoesFiltradas);
-        renderizarGraficoStatus(solicitacoesFiltradas);
-        renderizarSolicitacoesPendentes(solicitacoesFiltradas, containerPendentes, tiposMap);
-        renderizarProgressoAlunos(solicitacoesFiltradas, containerAlunos);
-        renderizarGraficoCategorias(solicitacoesFiltradas, tiposMap);
-
-    } catch (erro) {
-        console.error('Erro ao atualizar o dashboard:', erro);
-        if (containerPendentes) {
-            containerPendentes.innerHTML = '<p style="color: #ef4444; text-align: center; font-size: 0.875rem;">Erro ao carregar dados.</p>';
-        }
-    }
+function contarPorStatus(solicitacoes) {
+    const contagem = { PENDING: 0, IN_REVIEW: 0, APPROVED: 0, REJECTED: 0, CANCELED: 0 };
+    solicitacoes.forEach(item => contagem[item.status]++);
+    return contagem;
 }
 
-function renderizarCardsMetricas(solicitacoes) {
-    let pendentes = 0, aprovadas = 0, canceladas = 0, rejeitadas = 0;
-    const alunosSet = new Set();
+function renderizarCardsMetricas(total, porStatus, alunos) {
+    const concluidos = alunos.filter(aluno => aluno.progress_percentage >= 100).length;
 
-    solicitacoes.forEach(item => {
-        const st = (item.status || 'PENDING').toUpperCase();
-        if (st === 'PENDING') pendentes++;
-        else if (st === 'APPROVED') aprovadas++;
-        else if (st === 'CANCELED') canceladas++;
-        else if (st === 'REJECTED') rejeitadas++;
-
-        if (item.student_id) alunosSet.add(item.student_id);
-    });
-
-    const totalSolicitacoes = solicitacoes.length;
-    const totalAlunos = alunosSet.size;
-
-    const elTotal = document.getElementById('total-solicitacoes');
-    const elPendentes = document.getElementById('total-pendentes');
-    const elAprovadas = document.getElementById('total-aprovadas');
-    const elAlunos = document.getElementById('total-alunos');
-    const bannerPending = document.getElementById('banner-pending-count');
-
-    if (elTotal) elTotal.innerText = totalSolicitacoes;
-    if (elPendentes) elPendentes.innerText = pendentes;
-    if (elAprovadas) elAprovadas.innerText = aprovadas;
-    if (elAlunos) elAlunos.innerText = totalAlunos;
-    if (bannerPending) bannerPending.innerText = `${pendentes} pendente(s)`;
+    document.getElementById('total-solicitacoes').textContent = total;
+    document.getElementById('total-pendentes').textContent = porStatus.PENDING;
+    document.getElementById('total-aprovadas').textContent = porStatus.APPROVED;
+    document.getElementById('total-alunos').textContent = alunos.length;
+    document.getElementById('sub-alunos').textContent = `${concluidos} concluíram`;
+    document.getElementById('banner-pending-count').textContent = `${porStatus.PENDING} pendente(s)`;
 }
 
-function renderizarGraficoStatus(solicitacoes) {
+function renderizarGraficoStatus(porStatus) {
     const ctxStatus = document.getElementById('chartStatus')?.getContext('2d');
     if (!ctxStatus) return;
-
-    let pendentes = 0, aprovadas = 0, rejeitadas = 0, canceladas = 0;
-
-    solicitacoes.forEach(item => {
-        const st = (item.status || 'PENDING').toUpperCase();
-        if (st === 'PENDING') pendentes++;
-        else if (st === 'APPROVED') aprovadas++;
-        else if (st === 'REJECTED') rejeitadas++;
-        else if (st === 'CANCELED') canceladas++;
-    });
 
     if (chartStatusInstance) chartStatusInstance.destroy();
 
@@ -181,7 +110,7 @@ function renderizarGraficoStatus(solicitacoes) {
         data: {
             labels: ['Pendentes', 'Aprovadas', 'Rejeitadas', 'Canceladas'],
             datasets: [{
-                data: [pendentes, aprovadas, rejeitadas, canceladas],
+                data: [porStatus.PENDING, porStatus.APPROVED, porStatus.REJECTED, porStatus.CANCELED],
                 backgroundColor: ['#f59e0b', '#10b981', '#ef4444', '#64748b']
             }]
         },
@@ -193,151 +122,91 @@ function renderizarGraficoStatus(solicitacoes) {
     });
 }
 
-function renderizarSolicitacoesPendentes(solicitacoes, container, tiposMap) {
-    if (!container) return;
-    container.innerHTML = '';
+function renderizarSolicitacoesPendentes(solicitacoes) {
+    const container = document.getElementById('lista-aguardam-analise');
+    const pendentes = solicitacoes.filter(item => item.status === 'PENDING');
 
-    const titulo = document.getElementById('titulo-pendentes');
-    const pendentes = solicitacoes.filter(item => !item.status || item.status.toUpperCase() === 'PENDING');
-    const total = pendentes.length;
+    document.getElementById('titulo-pendentes').textContent = `Aguardam análise (${pendentes.length})`;
 
-    if (titulo) titulo.innerText = `Aguardam análise (${total})`;
-
-    if (total === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; font-size: 0.875rem;">Nenhuma solicitação pendente para este semestre.</p>';
+    if (pendentes.length === 0) {
+        container.innerHTML = '<p class="lista-vazia">Nenhuma solicitação pendente para este semestre.</p>';
         return;
     }
 
-    const exibidas = pendentes.slice(0, 6);
-
-    exibidas.forEach((item, index) => {
-        const alunoNome = item.student_name || 'Aluno';
-        const semestreVal = item.semestre_real;
-        const semestreHTML = semestreVal ? `<span class="status-badge badge-formacao" style="font-size: 0.7rem; padding: 2px 8px;">${semestreVal}º sem.</span>` : '';
-        
-        const typeId = item.activity_type_id || item.activity_type?.id;
-        const nomeTipoAtividade = (typeId ? tiposMap?.get(String(typeId)) : null)
-            || item.activity_type?.name 
-            || item.activity_type_name
-            || 'Tipo Não Identificado';
-        
-        const horas = item.requested_hours ?? 0;
-        const id = item.id;
-        const isLast = index === exibidas.length - 1;
-
-        const itemHTML = `
-            <div class="flex-between-center" style="padding-bottom: 12px; ${!isLast ? 'border-bottom: 1px solid #f1f5f9;' : ''}">
-                <div class="flex-align-center" style="gap: 12px;">
-                    <div class="avatar-circle medium" style="background-color: #2563eb; width: 40px; height: 40px; min-width: 40px; display: flex; align-items: center; justify-content: center; color: white; border-radius: 50%; font-weight: 600;">${alunoNome.charAt(0).toUpperCase()}</div>
-                    <div>
-                        <div class="flex-align-center" style="gap: 8px;">
-                            <strong>${alunoNome}</strong>
-                            ${semestreHTML}
-                        </div>
-                        <p class="stat-sub" style="margin-top: 2px; font-size: 0.8rem; color: #64748b;">${nomeTipoAtividade} · ${horas}h</p>
+    container.innerHTML = pendentes.slice(0, 6).map(item => `
+        <div class="lista-item">
+            <div class="lista-item-info">
+                <div class="avatar-inicial">${escapeHtml(item.student_name.charAt(0).toUpperCase())}</div>
+                <div>
+                    <div class="lista-item-titulo">
+                        <strong>${escapeHtml(item.student_name)}</strong>
+                        <span class="badge-semestre">${escapeHtml(item.student_semester)}º sem.</span>
                     </div>
+                    <p class="lista-item-sub">${escapeHtml(mapaTipos.get(item.activity_type_id) ?? 'Tipo não identificado')} · ${escapeHtml(item.requested_hours)}h</p>
                 </div>
-                <a href="detalhes-solicitacao-aluno.html?id=${id}" class="btn-analys">Analisar</a>
             </div>
-        `;
-        container.insertAdjacentHTML('beforeend', itemHTML);
-    });
+            <a href="detalhes-solicitacao-aluno.html?id=${encodeURIComponent(item.id)}" class="btn-analys">Analisar</a>
+        </div>
+    `).join('');
 }
 
-function renderizarProgressoAlunos(solicitacoes, container) {
-    if (!container) return;
-    container.innerHTML = '';
-
-    const alunosMap = new Map();
-
-    solicitacoes.forEach(item => {
-        const studentId = item.student_id || item.id;
-        const studentName = item.student_name || 'Aluno';
-
-        if (studentId && !alunosMap.has(studentId)) {
-            alunosMap.set(studentId, {
-                id: studentId,
-                name: studentName,
-                semester: item.semestre_real,
-                approved_hours: item.status === 'APPROVED' ? (item.accepted_hours || item.requested_hours || 0) : 0,
-                total_required_hours: 200
-            });
-        } else if (studentId && item.status === 'APPROVED') {
-            const al = alunosMap.get(studentId);
-            al.approved_hours += (item.accepted_hours || item.requested_hours || 0);
-        }
-    });
-
-    const alunos = Array.from(alunosMap.values());
+// Progresso calculado pela API (GET /students): horas aceitas e limite do curso
+function renderizarProgressoAlunos(alunos) {
+    const container = document.getElementById('lista-progresso-alunos');
 
     if (alunos.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-secondary); text-align: center; font-size: 0.875rem;">Nenhum aluno encontrado para este semestre.</p>';
+        container.innerHTML = '<p class="lista-vazia">Nenhum aluno encontrado para este semestre.</p>';
         return;
     }
 
-    const alunosExibidos = alunos.slice(0, 6);
-
-    alunosExibidos.forEach(aluno => {
-        const nome = aluno.name;
-        const semestreVal = aluno.semester;
-        const semestreHTML = semestreVal ? `<span class="status-badge badge-formacao" style="font-size: 0.7rem; padding: 2px 8px;">${semestreVal}º sem.</span>` : '';
-        const horasAprovadas = aluno.approved_hours || 0;
-        const horasTotais = aluno.total_required_hours || 200;
-
-        const percentual = Math.min(Math.round((horasAprovadas / horasTotais) * 100), 100);
-        const inicial = nome.charAt(0).toUpperCase();
-
-        let corBarra = '#2563eb';
-        let corBadge = 'badge-formacao';
+    container.innerHTML = alunos.slice(0, 6).map(aluno => {
+        const percentual = Math.min(Math.round(aluno.progress_percentage), 100);
+        let faixa = '';
+        let badge = 'badge-formacao';
 
         if (percentual >= 100) {
-            corBarra = '#10b981';
-            corBadge = 'badge-approved';
+            faixa = 'concluido';
+            badge = 'badge-approved';
         } else if (percentual < 30) {
-            corBarra = '#ef4444';
-            corBadge = 'badge-pending';
+            faixa = 'baixo';
+            badge = 'badge-pending';
         }
 
-        const itemHTML = `
-            <div class="flex-between-center" style="gap: 16px; margin-bottom: 12px;">
-                <div class="avatar-circle medium" style="background-color: #2563eb; width: 40px; height: 40px; min-width: 40px; display: flex; align-items: center; justify-content: center; color: white; border-radius: 50%; font-weight: 600;">${inicial}</div>
-                <div style="flex-grow: 1;">
-                    <div class="flex-align-center" style="gap: 8px; margin-bottom: 6px;">
-                        <strong>${nome}</strong>
-                        ${semestreHTML}
-                    </div>
-                    <div class="progress-bar-bg" style="margin: 0; height: 8px;">
-                        <div class="progress-bar-fill" style="width: ${percentual}%; background-color: ${corBarra};"></div>
+        return `
+            <div class="lista-item">
+                <div class="lista-item-info">
+                    <div class="avatar-inicial">${escapeHtml(aluno.name.charAt(0).toUpperCase())}</div>
+                    <div class="lista-item-progresso">
+                        <div class="lista-item-titulo">
+                            <strong>${escapeHtml(aluno.name)}</strong>
+                            <span class="badge-semestre">${escapeHtml(aluno.current_semester)}º sem.</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill ${faixa}" style="width: ${percentual}%;"></div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex-align-center" style="gap: 12px; min-width: 110px; justify-content: flex-end;">
-                    <span class="stat-sub" style="font-weight: 600;">${horasAprovadas}/${horasTotais}h</span>
-                    <span class="status-badge ${corBadge}" style="font-weight: 800;">${percentual}%</span>
+                <div class="lista-item-horas">
+                    <span class="stat-sub">${escapeHtml(aluno.total_approved_hours)}/${escapeHtml(aluno.total_required_hours)}h</span>
+                    <span class="status-badge ${badge}">${percentual}%</span>
                 </div>
             </div>
         `;
-        container.insertAdjacentHTML('beforeend', itemHTML);
-    });
+    }).join('');
 }
 
-function renderizarGraficoCategorias(solicitacoes, tiposMap) {
+function renderizarGraficoCategorias(solicitacoes) {
     const ctxCat = document.getElementById('chartCategorias')?.getContext('2d');
     if (!ctxCat) return;
 
-    const categoriasCount = {};
-
+    const porTipo = {};
     solicitacoes.forEach(item => {
-        const typeId = item.activity_type_id || item.activity_type?.id;
-        const nomeTipo = (typeId ? tiposMap?.get(String(typeId)) : null)
-            || item.activity_type?.name 
-            || item.activity_type_name
-            || 'Não Identificado';
-            
-        categoriasCount[nomeTipo] = (categoriasCount[nomeTipo] || 0) + 1;
+        const nome = mapaTipos.get(item.activity_type_id) ?? 'Não identificado';
+        porTipo[nome] = (porTipo[nome] ?? 0) + 1;
     });
 
-    const labels = Object.keys(categoriasCount);
-    const dataValues = Object.values(categoriasCount);
+    const labels = Object.keys(porTipo);
+    const valores = Object.values(porTipo);
 
     if (chartCategoriasInstance) chartCategoriasInstance.destroy();
 
@@ -347,7 +216,7 @@ function renderizarGraficoCategorias(solicitacoes, tiposMap) {
             labels: labels.length ? labels : ['Sem dados'],
             datasets: [{
                 label: 'Solicitações',
-                data: dataValues.length ? dataValues : [0],
+                data: valores.length ? valores : [0],
                 backgroundColor: '#2563eb',
                 borderRadius: 4,
                 barPercentage: 0.5
@@ -364,39 +233,4 @@ function renderizarGraficoCategorias(solicitacoes, tiposMap) {
             }
         }
     });
-}
-
-async function obterMapaTiposAtividade() {
-    if (mapaTiposGlobal) return mapaTiposGlobal;
-    const mapa = new Map();
-    try {
-        const apiModule = await import('../../api.js');
-        let tiposData = null;
-
-        if (typeof apiModule.obterTiposAtividades === 'function') {
-            tiposData = await apiModule.obterTiposAtividades();
-        } else if (typeof apiModule.obterTiposAtividade === 'function') {
-            tiposData = await apiModule.obterTiposAtividade();
-        } else if (typeof apiModule.listarTiposAtividade === 'function') {
-            tiposData = await apiModule.listarTiposAtividade();
-        } else {
-            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            const res = await fetch('/activity-types/', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) tiposData = await res.json();
-        }
-
-        const lista = Array.isArray(tiposData) ? tiposData : (tiposData?.items || tiposData?.data || []);
-        lista.forEach(t => {
-            const nomeAtividade = t.name || t.nome || t.title || t.description;
-            if (t.id !== undefined && t.id !== null) {
-                mapa.set(String(t.id), nomeAtividade);
-            }
-        });
-        mapaTiposGlobal = mapa;
-    } catch (e) {
-        console.error("Erro ao obter mapa de tipos de atividade:", e);
-    }
-    return mapa;
 }

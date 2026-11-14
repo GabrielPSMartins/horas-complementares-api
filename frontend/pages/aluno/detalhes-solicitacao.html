@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://unpkg.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'">
     <title>Detalhes da Solicitação - Horas Complementares</title>
     
     <!-- CSS Globais -->
@@ -10,7 +11,7 @@
     <link rel="stylesheet" href="../../css/layout.css">
     <link rel="stylesheet" href="../../css/componentes.css">
     
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@1.57.0/dist/umd/lucide.min.js" integrity="sha384-Qp5jsYqEgOGiWD8YMQ6yXIycASOePxr9mmbt+Ua0Wu1IScYxo0Pxf7o3Kx6NWJID" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -140,10 +141,32 @@
                                 <span id="anexo-subtexto" style="font-size: 12px; color: var(--text-muted);">Comprovante anexado</span>
                             </div>
                         </div>
-                        <a href="#" id="btn-download-anexo" target="_blank" class="btn-export" style="display: none; text-decoration: none;">
+                        <a href="#" id="btn-download-anexo" class="btn-export hidden" style="text-decoration: none;">
                             <i data-lucide="download"></i>
                             <span>Baixar</span>
                         </a>
+                    </div>
+
+                    <!-- Cancelamento: exibido apenas para solicitações pendentes -->
+                    <div id="container-btn-cancelar" class="cancelamento hidden">
+                        <div id="painel-acao-cancelar" class="cancelamento-acao">
+                            <button type="button" id="btn-cancelar-solicitacao" class="btn-cancelar-solicitacao">
+                                <i data-lucide="x-circle"></i>
+                                <span>Cancelar Solicitação</span>
+                            </button>
+                        </div>
+
+                        <div id="box-confirmacao-cancelamento" class="cancelamento-confirmacao hidden">
+                            <i data-lucide="alert-triangle"></i>
+                            <div>
+                                <strong>Confirmar cancelamento?</strong>
+                                <p>Tem certeza de que deseja cancelar esta solicitação? Esta ação não poderá ser desfeita.</p>
+                                <div class="cancelamento-botoes">
+                                    <button type="button" id="btn-desistir-cancelamento" class="btn-secundario">Voltar</button>
+                                    <button type="button" id="btn-confirmar-cancelamento-final" class="btn-perigo">Sim, cancelar</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -151,9 +174,7 @@
                 <div class="ui-card">
                     <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 20px;">Histórico</h3>
                     
-                    <div id="detalhe-timeline" style="position: relative; padding-left: 24px;">
-                        <div style="position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background-color: var(--border-color);"></div>
-                    </div>
+                    <div id="detalhe-timeline" class="timeline"></div>
                 </div>
 
             </div>
@@ -161,8 +182,6 @@
     </div>
 
     <script type="module" src="../../js/pages/alunos/detalhes-solicitacao.js"></script>
-    <script>
-        lucide.createIcons();
-    </script>
+    <script src="../../js/lucide-init.js"></script>
 </body>
 </html>

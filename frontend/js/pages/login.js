@@ -1,4 +1,4 @@
-import { loginUser, getRoleFromToken, validateUserRole, saveAuthSession } from '../auth.js'; 
+import { loginUser, getRoleFromToken, validateUserRole, saveAuthSession, isCoordinator } from '../auth.js';
 
 const loginForm = document.getElementById('loginForm');
 const msgErro = document.getElementById('msg-erro');
@@ -36,7 +36,8 @@ loginForm?.addEventListener('submit', async (e) => {
     msgErro.textContent = '';
 
     const idUser = document.getElementById('id_user').value.trim();
-    const password = document.getElementById('password').value.trim();
+    // A senha é enviada como digitada: espaços também fazem parte dela.
+    const password = document.getElementById('password').value;
 
     // Validação de campos vazios no front-end
     if (!idUser || !password) {
@@ -54,9 +55,12 @@ loginForm?.addEventListener('submit', async (e) => {
 
         const roleNoToken = getRoleFromToken(data.access_token);
         validateUserRole(roleNoToken, tipoSelecionado);
-        saveAuthSession(data.access_token, roleNoToken || tipoSelecionado);
 
-        if (roleNoToken.includes('coord') || roleNoToken.includes('admin')) {
+        // Salva o token e o perfil no localStorage
+        saveAuthSession(data.access_token, roleNoToken);
+
+        // Redireciona para o painel correto
+        if (isCoordinator(roleNoToken)) {
             window.location.href = 'pages/coordenador/dashboards.html';
         } else {
             window.location.href = 'pages/aluno/dashboard.html';
