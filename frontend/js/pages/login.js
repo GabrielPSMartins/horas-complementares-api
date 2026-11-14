@@ -4,8 +4,20 @@ const loginForm = document.getElementById('loginForm');
 const msgErro = document.getElementById('msg-erro');
 const btnAluno = document.getElementById('btnAluno');
 const btnCoordenador = document.getElementById('btnCoordenador');
+const forgotPassword = document.getElementById('forgotPassword'); // <--- 1. Captura o elemento
 
 let tipoSelecionado = 'aluno';
+
+// --- MUDANÇA AQUI: Tratamento do clique em "Esqueci minha senha" ---
+forgotPassword?.addEventListener('click', (e) => {
+    e.preventDefault();
+    
+    // Exibe o aviso utilizando a caixa de mensagem já existente na página
+    msgErro.textContent = 'Para redefinir sua senha, entre em contato com o suporte da instituição.';
+    
+    // Garante estilização visível (você também pode aplicar a classe .success-message se quiser tom informativo)
+    msgErro.style.display = 'block';
+});
 
 // Verifica o clique nos botões para saber a intenção do usuário
 btnAluno?.addEventListener('click', () => {
@@ -27,25 +39,21 @@ loginForm?.addEventListener('submit', async (e) => {
     // A senha é enviada como digitada: espaços também fazem parte dela.
     const password = document.getElementById('password').value;
 
-    // --- MUDANÇA AQUI: Validação de campos vazios no front-end ---
+    // Validação de campos vazios no front-end
     if (!idUser || !password) {
         msgErro.textContent = 'Por favor, preencha todos os campos!';
         msgErro.style.display = 'block';
-        return; // Interrompe a execução antes do try/catch e não chama o loginUser
+        return; 
     }
 
     try {
-        // Faz a requisição usando a função do auth.js
         const data = await loginUser(idUser, password);
 
         if (!data.access_token) {
             throw new Error('Token de acesso não retornado.');
         }
 
-        // Extrai a role contida no Token JWT
         const roleNoToken = getRoleFromToken(data.access_token);
-
-        // Valida se o perfil do usuário bate com o botão clicado
         validateUserRole(roleNoToken, tipoSelecionado);
 
         // Salva o token e o perfil no localStorage
